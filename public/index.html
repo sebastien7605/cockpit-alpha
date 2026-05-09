@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Cockpit Alpha — Agents</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-slate-50 min-h-screen">
+    <div class="max-w-5xl mx-auto p-8" x-data="agentsApp()" x-init="load()">
+        <header class="mb-8">
+            <h1 class="text-3xl font-semibold text-slate-800">Cockpit Alpha</h1>
+            <p class="text-sm text-slate-500 mt-1">Société Alpha — Agents (W-E1)</p>
+        </header>
+
+        <div x-show="loading" class="text-slate-500">Chargement…</div>
+        <div x-show="error" x-text="error" class="text-red-600"></div>
+
+        <div x-show="!loading && !error">
+            <p class="text-sm text-slate-600 mb-4">
+                <span x-text="agents.length"></span> agents chargés
+            </p>
+            <div class="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-100 text-slate-600 text-left">
+                        <tr>
+                            <th class="px-4 py-2">Nom</th>
+                            <th class="px-4 py-2">Équipe</th>
+                            <th class="px-4 py-2">Habilitations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="agent in agents" :key="agent.id">
+                            <tr class="border-t border-slate-100">
+                                <td class="px-4 py-2" x-text="agent.nom || agent.fields?.Nom"></td>
+                                <td class="px-4 py-2" x-text="agent.equipe || agent.fields?.Equipe"></td>
+                                <td class="px-4 py-2 text-slate-500" x-text="agent.habilitations || agent.fields?.Habilitations"></td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function agentsApp() {
+            return {
+                agents: [],
+                loading: true,
+                error: null,
+                async load() {
+                    try {
+                        const r = await fetch('/api/agents');
+                        if (!r.ok) throw new Error('HTTP ' + r.status);
+                        const data = await r.json();
+                        this.agents = data.agents || [];
+                    } catch (e) {
+                        this.error = 'Erreur chargement : ' + e.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>
