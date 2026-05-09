@@ -30,11 +30,11 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <template x-for="agent in agents" :key="agent.id">
+                        <template x-for="agent in agents" :key="agent.rec_id">
                             <tr class="border-t border-slate-100">
-                                <td class="px-4 py-2" x-text="agent.nom || agent.fields?.Nom"></td>
-                                <td class="px-4 py-2" x-text="agent.equipe || agent.fields?.Equipe"></td>
-                                <td class="px-4 py-2 text-slate-500" x-text="agent.habilitations || agent.fields?.Habilitations"></td>
+                                <td class="px-4 py-2" x-text="(agent.prenom + ' ' + agent.nom).trim()"></td>
+                                <td class="px-4 py-2" x-text="agent.equipe"></td>
+                                <td class="px-4 py-2 text-slate-500" x-text="(agent.habilitations || []).join(', ')"></td>
                             </tr>
                         </template>
                     </tbody>
