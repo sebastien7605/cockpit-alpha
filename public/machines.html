@@ -183,8 +183,7 @@
           </template>
         </div>
       </div>
-
-      <!-- ZONE DIAGNOSTIC IA (Phase 5) -->
+     <!-- ZONE DIAGNOSTIC IA (Phase 5 V3) -->
       <div x-show="diagnosticError" x-cloak
            x-transition:enter="transition ease-out duration-200"
            x-transition:enter-start="opacity-0"
@@ -195,47 +194,66 @@
       </div>
 
       <div x-show="diagnostic" x-cloak
-           x-transition:enter="transition ease-out duration-300"
-           x-transition:enter-start="opacity-0 translate-y-2"
+           x-transition:enter="transition ease-out duration-400"
+           x-transition:enter-start="opacity-0 translate-y-3"
            x-transition:enter-end="opacity-100 translate-y-0"
-           class="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-3">
+           class="mb-6 bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-8 text-white shadow-lg">
 
-        <!-- Carte 1 : Verdict -->
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 border-l-4 border-l-slate-700 p-6 shadow-sm">
-          <p class="text-sm uppercase tracking-wider text-slate-500 font-medium mb-3">Verdict du lundi matin</p>
-          <p class="text-base text-slate-800 leading-relaxed" x-text="diagnostic.diagnostic.resume"></p>
+        <!-- Header bloc diagnostic -->
+        <div class="flex items-center justify-between mb-8">
+          <div class="flex items-center gap-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <p class="text-xs uppercase tracking-wider text-slate-400 font-medium">Diagnostic IA · lecture du parc</p>
+          </div>
+          <span class="text-xs text-slate-500" x-text="'Lecture du ' + new Date(diagnostic.generated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })"></span>
         </div>
 
-        <!-- Carte 2 : Alertes critiques -->
-        <div class="bg-white rounded-xl border border-slate-200 border-l-4 border-l-red-500 p-5 shadow-sm">
-         <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Alertes critiques</p> 
-          <ul class="space-y-2" x-show="diagnostic.diagnostic.alertes_critiques.length > 0">
-            <template x-for="(item, i) in diagnostic.diagnostic.alertes_critiques" :key="i">
-              <li class="text-sm text-slate-700 leading-snug" x-text="item"></li>
-            </template>
-          </ul>
-          <p x-show="diagnostic.diagnostic.alertes_critiques.length === 0" class="text-sm text-slate-500 italic">Aucune alerte critique.</p>
+        <!-- Verdict en grand, comme une citation -->
+        <div class="border-l-2 border-emerald-400 pl-6 mb-10">
+          <p class="text-xl md:text-2xl font-light text-white leading-relaxed" x-text="diagnostic.diagnostic.resume"></p>
         </div>
 
-        <!-- Carte 3 : Maintenances à prévoir -->
-        <div class="bg-white rounded-xl border border-slate-200 border-l-4 border-l-amber-500 p-5 shadow-sm">
-          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Maintenances à prévoir</p>
-          <ul class="space-y-2" x-show="diagnostic.diagnostic.maintenances_a_prevoir.length > 0">
-            <template x-for="(item, i) in diagnostic.diagnostic.maintenances_a_prevoir" :key="i">
-              <li class="text-sm text-slate-700 leading-snug" x-text="item"></li>
-            </template>
-          </ul>
-          <p x-show="diagnostic.diagnostic.maintenances_a_prevoir.length === 0" class="text-sm text-slate-500 italic">Aucune maintenance à prévoir.</p>
+        <!-- 2 colonnes : Alertes / Maintenances -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10 pb-8 border-b border-slate-700">
+
+          <!-- Alertes -->
+          <div>
+            <div class="flex items-baseline gap-3 mb-4">
+              <span class="text-3xl font-semibold text-red-400" x-text="diagnostic.diagnostic.alertes_critiques.length"></span>
+              <span class="text-xs uppercase tracking-wider text-slate-400 font-medium">Alertes critiques</span>
+            </div>
+            <ul class="space-y-3" x-show="diagnostic.diagnostic.alertes_critiques.length > 0">
+              <template x-for="(item, i) in diagnostic.diagnostic.alertes_critiques" :key="i">
+                <li class="text-sm text-slate-200 leading-relaxed pl-3 border-l border-red-500/30" x-text="item"></li>
+              </template>
+            </ul>
+            <p x-show="diagnostic.diagnostic.alertes_critiques.length === 0" class="text-sm text-slate-500 italic">Aucune alerte critique.</p>
+          </div>
+
+          <!-- Maintenances -->
+          <div>
+            <div class="flex items-baseline gap-3 mb-4">
+              <span class="text-3xl font-semibold text-amber-400" x-text="diagnostic.diagnostic.maintenances_a_prevoir.length"></span>
+              <span class="text-xs uppercase tracking-wider text-slate-400 font-medium">Maintenances à prévoir</span>
+            </div>
+            <ul class="space-y-3" x-show="diagnostic.diagnostic.maintenances_a_prevoir.length > 0">
+              <template x-for="(item, i) in diagnostic.diagnostic.maintenances_a_prevoir" :key="i">
+                <li class="text-sm text-slate-200 leading-relaxed pl-3 border-l border-amber-500/30" x-text="item"></li>
+              </template>
+            </ul>
+            <p x-show="diagnostic.diagnostic.maintenances_a_prevoir.length === 0" class="text-sm text-slate-500 italic">Aucune maintenance à prévoir.</p>
+          </div>
+
         </div>
 
-        <!-- Carte 4 : Patterns par secteur -->
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 border-l-4 border-l-violet-500 p-5 shadow-sm"
-          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Patterns par secteur</p>
-          <ul class="space-y-3">
+        <!-- Lecture par secteur (l'analyse) -->
+        <div>
+          <p class="text-xs uppercase tracking-wider text-slate-400 font-medium mb-5">Lecture par secteur</p>
+          <div class="space-y-4">
             <template x-for="(item, i) in diagnostic.diagnostic.patterns_par_secteur" :key="i">
-              <li class="text-sm text-slate-700 leading-relaxed" x-text="item"></li>
+              <p class="text-sm md:text-base text-slate-100 leading-relaxed" x-text="item"></p>
             </template>
-          </ul>
+          </div>
         </div>
 
       </div>
