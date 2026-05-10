@@ -386,7 +386,7 @@
       </div>
 
       <p class="text-xs text-slate-400 mt-8 text-center">
-        Données fictives Société Alpha · Pipeline Airtable → n8n → nginx → navigateur
+        Données fictives Société Alpha · démonstration
       </p>
     </div>
 
@@ -542,16 +542,14 @@
         formatVerdict(text) {
           if (!text) return '';
           let html = this.escapeHtml(text);
-          // chiffres en lettres (rouge si associé à un risque) — focus sur "trois", "deux", "quatre"
-          const numberWords = ['une','deux','trois','quatre','cinq','six','sept','huit','neuf'];
+          // Uniquement les chiffres en lettres (associés à un comptage de risque)
+          const numberWords = ['une','deux','trois','quatre','cinq','six','sept','huit','neuf','dix'];
           numberWords.forEach(n => {
             const re = new RegExp('\\b(' + n + ')\\b', 'gi');
             html = html.replace(re, '<span class="diag-accent">$1</span>');
           });
-          // chiffres numériques (1, 2, 3...) hors dates
-          html = html.replace(/(?<![\d/-])\b(\d{1,2})\b(?!\d|[/-])/g, '<span class="diag-accent">$1</span>');
-          // noms d'ateliers et zones
-          ['Atelier 1','Atelier 2','Atelier 3','Quai expédition','Stock'].forEach(zone => {
+          // Noms d'ateliers et zones (incluant lignes de production)
+          ['Atelier 1','Atelier 2','Atelier 3','Quai expédition','Stock','Ligne A1','Ligne A2','Ligne B1','Ligne B2'].forEach(zone => {
             const re = new RegExp('(' + zone.replace(/ /g, '\\s+') + ')', 'g');
             html = html.replace(re, '<span class="diag-accent-slate">$1</span>');
           });
