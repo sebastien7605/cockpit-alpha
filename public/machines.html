@@ -162,7 +162,7 @@
             </svg>
             <span x-show="!diagnosticLoading && !diagnostic">Diagnostic IA</span>
             <span x-show="diagnosticLoading">Lecture en cours…</span>
-            <span x-show="!diagnosticLoading && diagnostic">Régénérer</span>
+            <span x-show="!diagnosticLoading && diagnostic">Actualiser le diagnostic</span>
           </button>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -201,23 +201,14 @@
            class="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-3">
 
         <!-- Carte 1 : Verdict -->
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 border-l-4 border-l-slate-700 p-5 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Verdict du lundi matin</p>
-            <span class="text-xs text-slate-400">
-              <span x-text="diagnostic.cached ? 'Cache' : 'Génération directe'"></span> ·
-              <span x-text="new Date(diagnostic.generated_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })"></span>
-            </span>
-          </div>
-          <p class="text-slate-800 leading-relaxed" x-text="diagnostic.diagnostic.resume"></p>
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 border-l-4 border-l-slate-700 p-6 shadow-sm">
+          <p class="text-sm uppercase tracking-wider text-slate-500 font-medium mb-3">Verdict du lundi matin</p>
+          <p class="text-base text-slate-800 leading-relaxed" x-text="diagnostic.diagnostic.resume"></p>
         </div>
 
         <!-- Carte 2 : Alertes critiques -->
         <div class="bg-white rounded-xl border border-slate-200 border-l-4 border-l-red-500 p-5 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Alertes critiques</p>
-            <span class="text-xs text-slate-400" x-text="diagnostic.diagnostic.alertes_critiques.length + (diagnostic.diagnostic.alertes_critiques.length > 1 ? ' points' : ' point')"></span>
-          </div>
+         <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Alertes critiques</p> 
           <ul class="space-y-2" x-show="diagnostic.diagnostic.alertes_critiques.length > 0">
             <template x-for="(item, i) in diagnostic.diagnostic.alertes_critiques" :key="i">
               <li class="text-sm text-slate-700 leading-snug" x-text="item"></li>
@@ -228,10 +219,7 @@
 
         <!-- Carte 3 : Maintenances à prévoir -->
         <div class="bg-white rounded-xl border border-slate-200 border-l-4 border-l-amber-500 p-5 shadow-sm">
-          <div class="flex items-center justify-between mb-3">
-            <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Maintenances à prévoir</p>
-            <span class="text-xs text-slate-400" x-text="diagnostic.diagnostic.maintenances_a_prevoir.length + (diagnostic.diagnostic.maintenances_a_prevoir.length > 1 ? ' points' : ' point')"></span>
-          </div>
+          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Maintenances à prévoir</p>
           <ul class="space-y-2" x-show="diagnostic.diagnostic.maintenances_a_prevoir.length > 0">
             <template x-for="(item, i) in diagnostic.diagnostic.maintenances_a_prevoir" :key="i">
               <li class="text-sm text-slate-700 leading-snug" x-text="item"></li>
@@ -241,7 +229,7 @@
         </div>
 
         <!-- Carte 4 : Patterns par secteur -->
-        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 border-l-4 border-l-sky-500 p-5 shadow-sm">
+        <div class="lg:col-span-2 bg-white rounded-xl border border-slate-200 border-l-4 border-l-violet-500 p-5 shadow-sm"
           <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Patterns par secteur</p>
           <ul class="space-y-3">
             <template x-for="(item, i) in diagnostic.diagnostic.patterns_par_secteur" :key="i">
