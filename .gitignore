@@ -16,3 +16,6 @@ config.local.js
 
 # Dependencies (futur)
 node_modules/
+
+test-response.json
+*.test.json

@@ -1,23 +1,24 @@
 # Cockpit Alpha
 
-Cockpit de pilotage opérationnel pour PME industrielle (~50 personnels, 18 équipements, 3 équipes Production / Maintenance / Logistique).
+Asset démo personnel — système de pilotage opérationnel pour PME industrielle fictive (Société Alpha, 50 salariés, 18 machines).
 
-## Stack technique
+## État du projet
 
-- **Front** : HTML + Tailwind CSS (CDN) + Alpine.js v3
-- **Middleware** : n8n (auto-hébergé) — proxy sécurisé vers Airtable
-- **Backend** : Airtable (base de données)
-- **Hébergement** : Coolify VPS Hostinger
+| Module | Statut | Endpoint | Moment IA |
+|--------|--------|----------|-----------|
+| W-E1 Agents | ✅ 09/05/2026 | `/api/agents` | — |
+| W-E2 Machines | À venir | `/api/machines` | Diagnostic global parc |
+| W-E3 Maintenance | À venir | `/api/interventions` | Analyse causale "Pourquoi ?" |
+| W-E4 Planning | À venir | `/api/planning` | Réallocation hebdo |
 
-## Statut
+URL prod : https://cockpit-alpha.kalystral.com
 
-🚧 En construction — week-end 1 sur 4
+## Stack
 
-## Modules
-
-- [ ] Module 1 : Suivi équipes (50 agents, filtres + compteurs)
-- [ ] Module 2 : Parc équipements (18 machines, états, alertes)
-- [ ] Module 3 : Maintenance (40 interventions, planning préventif)
-- [ ] Module 4 : Planning opérationnel (affectations)
+- **Front** : HTML + Alpine.js + Tailwind CDN
+- **Backend data** : Airtable
+- **Workflow** : n8n self-hosted (n8n.kalystral.com)
+- **Hosting** : Coolify Docker nginx:alpine + proxy vers n8n
+- **HTTPS** : Let's Encrypt auto via Coolify
 
 ## Architecture
