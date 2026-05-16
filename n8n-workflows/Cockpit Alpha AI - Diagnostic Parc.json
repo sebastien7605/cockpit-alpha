@@ -1,0 +1,519 @@
+{
+  "name": "Cockpit Alpha AI - Diagnostic Parc",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "cockpit-alpha/diagnostic",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "d238bb06-8aca-491e-9c19-014c32d62efe",
+      "name": "Webhook Diagnostic",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        -32
+      ],
+      "webhookId": "cockpit-alpha-diagnostic"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "auth-equals",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "0181470cf3f940a78d5843d6af042611",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "auth-notempty",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e31b013c-b22e-400b-a855-5077a853e969",
+      "name": "IF Auth",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"error\": \"unauthorized\" } }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "3484c950-6d7e-46e7-83b2-b4c6dc639b4f",
+      "name": "Respond 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appnrAPrFQBdyvh2u"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tbl977Mbq2hel0d2E"
+        },
+        "filterByFormula": "AND({cache_key}='diagnostic-parc-v1', {is_valid}='valid')",
+        "options": {}
+      },
+      "id": "816376b4-540a-47f1-b680-b3aca719ecc9",
+      "name": "Airtable Cache Read",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -240,
+        -224
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "loGh31J4t25oFtyj",
+          "name": "Airtable Cockpit Alpha (readonly)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cache-hit",
+              "leftValue": "={{ $json.cache_key }}",
+              "rightValue": "diagnostic-parc-v1",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3c9de056-43ad-4a4c-8c69-c2f37ba9ab26",
+      "name": "IF Cache Hit",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -16,
+        -224
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cache hit : on parse le JSON stocké et on renvoie le contrat\nconst record = $input.first().json;\n\nlet cached;\ntry {\n  cached = JSON.parse(record.response_json);\n} catch (e) {\n  throw new Error('Cache JSON invalide pour key=' + record.cache_key + '. Détail : ' + e.message);\n}\n\nreturn [{\n  json: {\n    success: true,\n    cached: true,\n    generated_at: record.generated_at,\n    diagnostic: cached.diagnostic\n  }\n}];"
+      },
+      "id": "96420caa-316e-4437-905b-6ef0c7734142",
+      "name": "Format Cached Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        -336
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appnrAPrFQBdyvh2u",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblD7r8bGck29a6cw",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "aeef74ee-bc5c-4b1d-867c-12ca4b7961b6",
+      "name": "Airtable Search Machines",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        192,
+        -32
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "KKIzA6NTMUpSGAU2",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appnrAPrFQBdyvh2u",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl8Ndg94K5dTH07s",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "3248589a-9fbe-489a-8e77-54526961fdd1",
+      "name": "Airtable Search Interventions",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        -32
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "KKIzA6NTMUpSGAU2",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construit le payload Anthropic avec tool_use forcé\nconst machinesRaw = $('Airtable Search Machines').all();\nconst interventionsRaw = $('Airtable Search Interventions').all();\n\n// Index machines par recId pour résoudre les liens dans Interventions\nconst machinesById = {};\nmachinesRaw.forEach(item => {\n  const f = item.json;\n  const recId = item.json.id || f.id;\n  if (recId) {\n    machinesById[recId] = {\n      nom: f.Nom_machine || '?',\n      type: f.Type || '?',\n      localisation: f.Localisation || '?'\n    };\n  }\n});\n\nconst today = new Date().toISOString().slice(0, 10);\n\n// Format machines\nconst machinesLines = machinesRaw.map(item => {\n  const f = item.json;\n  const nbInter = Array.isArray(f.Interventions) ? f.Interventions.length : 0;\n  return `- ${f.Nom_machine || '?'} | ${f.Type || '?'} | ${f.Localisation || '?'} | ${f.Etat || '?'} | Dernière maint : ${f.Derniere_maintenance || 'NA'} | Prochaine maint : ${f.Prochaine_maintenance_Preventive || 'NA'} | Garantie expire : ${f.Garantie_expiration || 'NA'} | Interventions totales : ${nbInter}`;\n}).join('\\n');\n\n// Format interventions (filtre 60 jours, résout nom machine via index)\nconst cutoff = new Date();\ncutoff.setDate(cutoff.getDate() - 60);\nconst interventionsFiltered = interventionsRaw.filter(item => {\n  const d = item.json.Date;\n  return d && new Date(d) >= cutoff;\n});\n\nconst interventionsLines = interventionsFiltered.map(item => {\n  const f = item.json;\n  const machineRecId = Array.isArray(f.Machine) && f.Machine.length > 0 ? f.Machine[0] : null;\n  const machineNom = machineRecId && machinesById[machineRecId] ? machinesById[machineRecId].nom : '?';\n  const dureeMin = f.Duree_min || 0;\n  const dureeStr = dureeMin >= 60 ? `${(dureeMin / 60).toFixed(1)}h` : `${dureeMin}min`;\n  const desc = (f.Description || '').slice(0, 80);\n  return `- ${f.Date || '?'} | ${machineNom} | ${f.Type || '?'} | ${f.Type_panne || 'NA'} | Statut: ${f.Statut || '?'} | ${dureeStr} | ${desc}`;\n}).join('\\n');\n\n// User message\nconst userMessage = `État du parc machine au ${today} :\n\nMACHINES (${machinesRaw.length} unités)\n${machinesLines}\n\nINTERVENTIONS (60 derniers jours, ${interventionsFiltered.length} entrées)\n${interventionsLines || '- aucune'}\n\nDonne ton verdict en utilisant l'outil submit_diagnostic.`;\n\n// System prompt\nconst systemPrompt = `Tu es chef d'atelier dans une PME industrielle de 50 personnes. Lundi matin, tu prends 90 secondes pour donner ton verdict sur le parc machine à ton DGS. Ton ton est lucide, sobre, factuel. Pas de superlatifs, pas de jargon corporate, pas de blabla. Tu parles vrai, comme un ancien qui a vu passer des pannes.\n\nTu reçois deux jeux de données : la liste des machines (état, secteur, dernière maintenance, prochaine maintenance préventive, garantie) et la liste des interventions des 60 derniers jours.\n\nRègles de sortie :\n- resume : 1 à 2 phrases, le verdict général du lundi matin\n- alertes_critiques : machines en \"Hors service\" ou \"Alerte\", 1 ligne par machine, format \"Nom (localisation) : motif court tiré des données\"\n- maintenances_a_prevoir : machines dont la prochaine maintenance préventive tombe dans les 30 jours, ou état \"Maintenance prévue\". Format : \"Nom (localisation) : prévu le YYYY-MM-DD, point d'attention\"\n- patterns_par_secteur : 2 à 4 phrases qui interprètent un signal par localisation (Atelier 1 / Atelier 2 / Quai expédition / Stock). Pas de liste plate, tu interprètes : concentration de pannes, type récurrent, agent assigné, etc.\n- Total : 5 à 8 phrases utiles cumulées. Pas de remplissage. Si rien à signaler dans une section, tu mets [] et tu ne te justifies pas.\n- Aucune mention \"selon les données fournies\", \"il semble que\", \"il pourrait être recommandé\". Tu tranches.\n- Réponse en français.\n\nTu réponds OBLIGATOIREMENT via l'outil submit_diagnostic, jamais en texte libre.`;\n\nconst tool = {\n  name: 'submit_diagnostic',\n  description: 'Soumet le diagnostic du parc machine au DGS',\n  input_schema: {\n    type: 'object',\n    required: ['resume', 'alertes_critiques', 'maintenances_a_prevoir', 'patterns_par_secteur'],\n    properties: {\n      resume: { type: 'string', description: '1 à 2 phrases verdict général' },\n      alertes_critiques: { type: 'array', items: { type: 'string' } },\n      maintenances_a_prevoir: { type: 'array', items: { type: 'string' } },\n      patterns_par_secteur: { type: 'array', items: { type: 'string' } }\n    }\n  }\n};\n\nreturn [{\n  json: {\n    anthropic_payload: {\n      model: 'claude-haiku-4-5',\n      max_tokens: 1000,\n      temperature: 0.3,\n      system: systemPrompt,\n      tools: [tool],\n      tool_choice: { type: 'tool', name: 'submit_diagnostic' },\n      messages: [\n        { role: 'user', content: userMessage }\n      ]\n    }\n  }\n}];"
+      },
+      "id": "aee8ccb4-9962-48e9-a775-b9ec2b65eb94",
+      "name": "Format Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_payload) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c1d9435d-4d72-49ac-8919-89d86e216a7b",
+      "name": "HTTP Anthropic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        864,
+        -32
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "u5Md2jPA7uYpQHFh",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse réponse Anthropic mode tool_use + filet regex de sécurité\nconst r = $input.first().json;\n\nlet diagnosticInput = null;\n\n// Cas 1 (nominal) : tool_use forcé\nif (Array.isArray(r.content)) {\n  const toolBlock = r.content.find(b => b.type === 'tool_use' && b.name === 'submit_diagnostic');\n  if (toolBlock && toolBlock.input) {\n    diagnosticInput = toolBlock.input;\n  }\n}\n\n// Cas 2 (filet de sécurité) : Claude n'a pas utilisé l'outil\nif (!diagnosticInput && Array.isArray(r.content)) {\n  const textBlock = r.content.find(b => b.type === 'text');\n  if (textBlock && textBlock.text) {\n    try {\n      diagnosticInput = JSON.parse(textBlock.text);\n    } catch (e) {\n      const match = textBlock.text.match(/\\{[\\s\\S]*\\}/);\n      if (match) {\n        try { diagnosticInput = JSON.parse(match[0]); } catch (e2) {}\n      }\n    }\n  }\n}\n\nif (!diagnosticInput) {\n  throw new Error('Aucun diagnostic exploitable dans la réponse Anthropic. Raw : ' + JSON.stringify(r).slice(0, 500));\n}\n\nconst now = new Date().toISOString();\nconst response = {\n  success: true,\n  cached: false,\n  generated_at: now,\n  diagnostic: {\n    resume: diagnosticInput.resume || '',\n    alertes_critiques: Array.isArray(diagnosticInput.alertes_critiques) ? diagnosticInput.alertes_critiques : [],\n    maintenances_a_prevoir: Array.isArray(diagnosticInput.maintenances_a_prevoir) ? diagnosticInput.maintenances_a_prevoir : [],\n    patterns_par_secteur: Array.isArray(diagnosticInput.patterns_par_secteur) ? diagnosticInput.patterns_par_secteur : []\n  }\n};\n\nreturn [{\n  json: {\n    ...response,\n    _cache_payload: {\n      cache_key: 'diagnostic-parc-v1',\n      endpoint: 'diagnostic',\n      response_json: JSON.stringify(response),\n      generated_at: now,\n      ttl_hours: 720,\n      notes: 'Auto-généré par workflow'\n    }\n  }\n}];"
+      },
+      "id": "36de15d1-57dd-49ca-b8bc-1a7feefce7a8",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appnrAPrFQBdyvh2u",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl977Mbq2hel0d2E",
+          "mode": "id"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cache_key": "={{ $json._cache_payload.cache_key }}",
+            "endpoint": "={{ $json._cache_payload.endpoint }}",
+            "response_json": "={{ $json._cache_payload.response_json }}",
+            "generated_at": "={{ $json._cache_payload.generated_at }}",
+            "ttl_hours": "={{ $json._cache_payload.ttl_hours }}",
+            "notes": "={{ $json._cache_payload.notes }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "0e48a8f1-0fe0-4d10-9112-7a94b4d6e7ec",
+      "name": "Airtable Cache Write",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1296,
+        -32
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "KKIzA6NTMUpSGAU2",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// On reprend la réponse construite par Format Response\n// et on enlève le _cache_payload avant de répondre au client\nconst src = $('Format Response').first().json;\nconst { _cache_payload, ...clean } = src;\nreturn [{ json: clean }];"
+      },
+      "id": "28283d1a-2c7b-4cc3-84c8-68ffc7435b61",
+      "name": "Strip Internal Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "b9c76d07-0440-4ff4-bf30-478953afdda5",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1744,
+        -32
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Diagnostic": {
+      "main": [
+        [
+          {
+            "node": "IF Auth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auth": {
+      "main": [
+        [
+          {
+            "node": "Airtable Cache Read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Cache Read": {
+      "main": [
+        [
+          {
+            "node": "IF Cache Hit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Cache Hit": {
+      "main": [
+        [
+          {
+            "node": "Format Cached Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable Search Machines",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Cached Response": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Search Machines": {
+      "main": [
+        [
+          {
+            "node": "Airtable Search Interventions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Search Interventions": {
+      "main": [
+        [
+          {
+            "node": "Format Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Prompt": {
+      "main": [
+        [
+          {
+            "node": "HTTP Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Airtable Cache Write",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Cache Write": {
+      "main": [
+        [
+          {
+            "node": "Strip Internal Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Strip Internal Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "versionId": "d9822581-bd8c-460d-a340-97090d0be320",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e36c05e0e6a1b0bc20d47b3d27f3ffcdd965a3f8485cee7cbd6531808d23635"
+  },
+  "id": "kS51e8n0RFKb50mq",
+  "tags": []
+}
