@@ -1,0 +1,649 @@
+{
+  "name": "Cockpit Alpha AI – Pourquoi",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "cockpit-alpha/pourquoi/:recId",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "dcb02f95-a871-45f0-9c6e-7ad8ce71d1de",
+      "name": "Webhook Pourquoi",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        160
+      ],
+      "webhookId": "5c9204c0-ef5b-458c-aace-f7026fa424de"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "auth-equals",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "0181470cf3f940a78d5843d6af042611",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "auth-notempty",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f8334843-3823-42d3-9646-330c17df591a",
+      "name": "IF Auth",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"error\": \"unauthorized\" } }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "420bb5e3-35f0-4a01-a1d9-cbb22eefa90b",
+      "name": "Respond 401",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        16,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appnrAPrFQBdyvh2u"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tbl977Mbq2hel0d2E"
+        },
+        "filterByFormula": "=AND({cache_key}='pourquoi-int-{{ $json.params.recId }}-v1', {is_valid}='valid')",
+        "options": {}
+      },
+      "id": "31e3ddfb-bd98-47e1-9250-1a297489cf6d",
+      "name": "Airtable Cache Read",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        16,
+        -32
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "loGh31J4t25oFtyj",
+          "name": "Airtable Cockpit Alpha (readonly)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "cache-hit",
+              "leftValue": "={{ $json.cache_key }}",
+              "rightValue": "=pourquoi-int-{{ $('Webhook Pourquoi').first().json.params.recId }}-v1",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "562a39bc-d58f-4f16-9374-401bb34e5320",
+      "name": "IF Cache Hit",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        240,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cache hit : on parse le JSON stocké et on renvoie le contrat\nconst record = $input.first().json;\nconst recId = $('Webhook Pourquoi').first().json.params.recId;\n\nlet cached;\ntry {\n  cached = JSON.parse(record.response_json);\n} catch (e) {\n  throw new Error('Cache JSON invalide pour key=' + record.cache_key + '. Détail : ' + e.message);\n}\n\nreturn [{\n  json: {\n    success: true,\n    cached: true,\n    generated_at: record.generated_at,\n    intervention_id: recId,\n    pourquoi: cached.pourquoi\n  }\n}];"
+      },
+      "id": "9a578fe7-0898-4c00-9393-df6a58926707",
+      "name": "Format Cached Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        -144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appnrAPrFQBdyvh2u"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tbl8Ndg94K5dTH07s"
+        },
+        "filterByFormula": "=RECORD_ID()='{{ $('Webhook Pourquoi').first().json.params.recId }}'",
+        "returnAll": false,
+        "limit": 1,
+        "options": {}
+      },
+      "id": "3de3aa20-de94-4884-a9a6-1734b536ef7a",
+      "name": "Search Intervention Cible",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        464,
+        160
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "KKIzA6NTMUpSGAU2",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "found",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "131c80af-2a42-48d4-9251-89ed45b8bb05",
+      "name": "IF Intervention Trouvée",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        688,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"error\": \"intervention_not_found\", \"intervention_id\": $('Webhook Pourquoi').first().json.params.recId } }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "id": "7b50648b-2df6-4e61-8870-13b61d6e9d25",
+      "name": "Respond 404",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        912,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appnrAPrFQBdyvh2u"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblD7r8bGck29a6cw"
+        },
+        "filterByFormula": "=RECORD_ID()='{{ $json.Machine[0] }}'",
+        "returnAll": false,
+        "limit": 1,
+        "options": {}
+      },
+      "id": "e9a5bb42-c0c7-4e65-88c7-22c774616b93",
+      "name": "Search Machine",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        912,
+        64
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "KKIzA6NTMUpSGAU2",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appnrAPrFQBdyvh2u"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tbl8Ndg94K5dTH07s"
+        },
+        "filterByFormula": "=AND(FIND(RECORD_ID(), '{{ $('Search Machine').first().json.Interventions.join(\",\") }}')>0, RECORD_ID()!='{{ $('Webhook Pourquoi').first().json.params.recId }}')",
+        "returnAll": false,
+        "limit": 10,
+        "options": {},
+        "sort": {
+          "property": [
+            {
+              "field": "Date",
+              "direction": "desc"
+            }
+          ]
+        }
+      },
+      "id": "f3bbe647-9237-4631-966b-01973a633f16",
+      "name": "Search Historique",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        1136,
+        64
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "KKIzA6NTMUpSGAU2",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// FORMAT PROMPT — Phase 3 W-E3 \"Pourquoi causal\"\n// Construit le payload Anthropic avec tool_use forcé sur submit_pourquoi\n// System prompt et tool schema FIGÉS en Phase 2 (bilan Notion 16/05/2026)\n// Doctrine Kalystral : \"supprimer la friction humaine, pas la déplacer\"\n// =====================================================================\n\n// --- Récupération des 3 datasets via références cross-node ---\nconst intervention = $('Search Intervention Cible').first().json;\nconst machine = $('Search Machine').first().json;\nconst historiqueRaw = $('Search Historique').all();\n\n// --- Helpers ---\nfunction safe(v, fallback = 'NA') {\n  if (v === null || v === undefined || v === '') return fallback;\n  return v;\n}\n\nfunction firstFromArray(v) {\n  if (Array.isArray(v) && v.length > 0) return v[0];\n  return v;\n}\n\nfunction dureeFormat(min) {\n  if (!min) return 'NA';\n  return min >= 60 ? `${(min / 60).toFixed(1)}h` : `${min}min`;\n}\n\n// --- Bloc 1 : INTERVENTION CIBLE ---\nconst i = intervention;\nconst machineNomLookup = firstFromArray(i.Machine_nom) || '?';\nconst agentNomLookup = firstFromArray(i.Agent_nom) || '?';\n\nconst interventionBloc = [\n  `INTERVENTION CIBLE`,\n  `- Date : ${safe(i.Date)}`,\n  `- Type : ${safe(i.Type)}`,\n  `- Type de panne : ${safe(i.Type_panne)}`,\n  `- Statut : ${safe(i.Statut)}`,\n  `- Durée : ${dureeFormat(i.Duree_min)}`,\n  `- Coût estimé : ${safe(i.Cout_estime, 'NA')} €`,\n  `- Machine : ${machineNomLookup}`,\n  `- Agent intervenant : ${agentNomLookup}`,\n  `- Description : ${safe(i.Description, '(vide)')}`,\n  `- Pièces utilisées : ${safe(i['Pièces_utilisées'], '(aucune)')}`,\n  `- Remarques rapport : ${safe(i['Remarques_rapport'], '(aucune)')}`,\n].join('\\n');\n\n// --- Bloc 2 : MACHINE CONTEXTE ---\nconst m = machine;\nconst machineBloc = [\n  `MACHINE CONTEXTE`,\n  `- Nom : ${safe(m.Nom_machine)}`,\n  `- Type : ${safe(m.Type)}`,\n  `- Localisation : ${safe(m.Localisation)}`,\n  `- État actuel : ${safe(m.Etat)}`,\n  `- Constructeur : ${safe(m.Constructeur)}`,\n  `- N° série : ${safe(m.Num_serie)}`,\n  `- Date mise en service : ${safe(m.Date_mise_service)}`,\n  `- Dernière maintenance : ${safe(m.Derniere_maintenance)}`,\n  `- Prochaine maintenance préventive : ${safe(m.Prochaine_maintenance_Preventive)}`,\n  `- Garantie expire : ${safe(m.Garantie_expiration)}`,\n].join('\\n');\n\n// --- Bloc 3 : HISTORIQUE MACHINE (10 dernières interventions hors cible) ---\nconst historiqueLines = historiqueRaw.map(item => {\n  const h = item.json;\n  const desc = (h.Description || '').slice(0, 80).replace(/\\n/g, ' ');\n  return `- ${safe(h.Date)} | ${safe(h.Type)} | ${safe(h.Type_panne, '-')} | Statut: ${safe(h.Statut, '-')} | ${dureeFormat(h.Duree_min)} | ${desc}`;\n}).join('\\n');\n\nconst historiqueBloc = historiqueRaw.length > 0\n  ? `HISTORIQUE MACHINE (${historiqueRaw.length} interventions précédentes, plus récentes en premier)\\n${historiqueLines}`\n  : `HISTORIQUE MACHINE\\n- Aucune intervention précédente sur cette machine`;\n\n// --- Composition user message ---\nconst userMessage = [\n  interventionBloc,\n  '',\n  machineBloc,\n  '',\n  historiqueBloc,\n  '',\n  'Analyse cette intervention en croisant son contenu (description, pièces, remarques) avec le contexte machine et le pattern de l\\'historique. Soumets ton verdict via l\\'outil submit_pourquoi.'\n].join('\\n');\n\n// --- System prompt FIGÉ Phase 2 ---\nconst systemPrompt = `Tu es chef de maintenance dans une PME industrielle de 50 personnes. On t'a transmis une intervention de maintenance ; tu dois en faire l'analyse causale pour ton chef d'atelier. Ton ton est lucide, sobre, factuel. Pas de superlatifs, pas de jargon corporate, pas de blabla. Tu parles vrai, comme un ancien qui a vu passer des pannes.\n\nTu reçois trois jeux de données : l'intervention cible (date, type, description, pièces, remarques), le contexte machine (localisation, dates clés, garantie), et l'historique des 10 interventions précédentes sur cette même machine.\n\nDOCTRINE NON NÉGOCIABLE — \"Supprimer la friction humaine, pas la déplacer\" :\n\n- INTERDIT dans le champ action : \"organiser une réunion\", \"aligner l'équipe\", \"faire un point\", \"former les agents\", \"communiquer en interne\", \"discuter avec X\". Aucune action organisationnelle.\n- OBLIGATOIRE — cause_probable : s'appuie sur ce qui apparaît dans description, pieces_utilisees ou remarques_rapport, ou dans le pattern de l'historique. Si rien ne pointe une cause précise, formule \"cause à investiguer : [hypothèse]\" et propose un test ciblé.\n- OBLIGATOIRE — action : externe à l'équipe quand c'est possible (contacter le constructeur, commander une pièce chez le fournisseur, faire intervenir un sous-traitant). Si l'action doit être interne, elle est technique et chiffrée (test de pression sous 48h, contrôle du point de fixation Y, remplacement du joint Z), jamais \"discuter\" ou \"faire un point\".\n- OBLIGATOIRE — delai : chiffré et court (\"avant 72h\", \"sous 7 jours\", \"avant fin du mois\"). Jamais \"dès que possible\" ou \"à planifier\".\n\nCAS PRÉVENTIVE : si type === Préventive et qu'aucune anomalie n'est détectable dans description/pièces/remarques, alors verdict = \"Intervention préventive standard. Rien à signaler.\", fil_temporel reste vide, recommandation = {cause_probable: \"NA\", action: \"NA\", delai: \"NA\"}. Ne force pas un verdict.\n\nTRANSPARENCE : si la cause est incertaine, nuance (\"cause probable : X — à confirmer par Y\"). Tranche uniquement si 3 indices ou plus convergent (description + pièces + pattern historique par exemple).\n\nVOIX : lucide, sobre, factuelle. Aucune mention \"selon les données fournies\", \"il semble que\", \"il pourrait être recommandé\". Tu tranches.\n\nLANGUE : français.\n\nTu réponds OBLIGATOIREMENT via l'outil submit_pourquoi, jamais en texte libre.`;\n\n// --- Tool schema FIGÉ Phase 2 ---\nconst tool = {\n  name: 'submit_pourquoi',\n  description: 'Soumet l\\'analyse causale de l\\'intervention',\n  input_schema: {\n    type: 'object',\n    required: ['verdict', 'fil_temporel', 'recommandation'],\n    properties: {\n      verdict: {\n        type: 'string',\n        description: '3-4 phrases narratives qui croisent intervention + historique machine + agent. Trace l\\'histoire, cite les patterns. Voix lucide, sobre, factuelle.'\n      },\n      fil_temporel: {\n        type: 'array',\n        items: {\n          type: 'object',\n          properties: {\n            date: { type: 'string', description: 'format JJ/MM' },\n            ligne: { type: 'string', description: '1 phrase narrative qui révèle le pattern par répétition lexicale' }\n          },\n          required: ['date', 'ligne']\n        },\n        description: '3 à 5 interventions précédentes, reformulées pour faire ressortir la récurrence. Vide si historique trop court ou pas de pattern.'\n      },\n      recommandation: {\n        type: 'object',\n        required: ['cause_probable', 'action', 'delai'],\n        properties: {\n          cause_probable: { type: 'string', description: '1 phrase tranchée pointant une cause technique' },\n          action: { type: 'string', description: 'verbe à l\\'infinitif, externe à l\\'équipe quand possible' },\n          delai: { type: 'string', description: 'délai chiffré court' }\n        }\n      }\n    }\n  }\n};\n\nreturn [{\n  json: {\n    anthropic_payload: {\n      model: 'claude-haiku-4-5',\n      max_tokens: 1500,\n      temperature: 0.3,\n      system: systemPrompt,\n      tools: [tool],\n      tool_choice: { type: 'tool', name: 'submit_pourquoi' },\n      messages: [\n        { role: 'user', content: userMessage }\n      ]\n    }\n  }\n}];"
+      },
+      "id": "c6579123-4073-43e9-8bab-b1d8e8dc02e2",
+      "name": "Format Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "anthropicApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.anthropic_payload) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "58f0f796-6b7b-4dd6-a6b4-e8b9e673c68e",
+      "name": "HTTP Anthropic",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1584,
+        64
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "u5Md2jPA7uYpQHFh",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// =====================================================================\n// FORMAT RESPONSE — Phase 3 W-E3\n// Parse la réponse Anthropic tool_use submit_pourquoi\n// + filet de sécurité regex si Claude répond en texte libre\n// + structure le contrat de sortie + prépare le payload Cache Write\n// =====================================================================\n\nconst r = $input.first().json;\nconst recId = $('Webhook Pourquoi').first().json.params.recId;\n\nlet pourquoiInput = null;\n\n// --- Cas 1 (nominal) : tool_use forcé ---\nif (Array.isArray(r.content)) {\n  const toolBlock = r.content.find(b => b.type === 'tool_use' && b.name === 'submit_pourquoi');\n  if (toolBlock && toolBlock.input) {\n    pourquoiInput = toolBlock.input;\n  }\n}\n\n// --- Cas 2 (filet de sécurité) : Claude n'a pas utilisé l'outil ---\nif (!pourquoiInput && Array.isArray(r.content)) {\n  const textBlock = r.content.find(b => b.type === 'text');\n  if (textBlock && textBlock.text) {\n    try {\n      pourquoiInput = JSON.parse(textBlock.text);\n    } catch (e) {\n      const match = textBlock.text.match(/\\{[\\s\\S]*\\}/);\n      if (match) {\n        try { pourquoiInput = JSON.parse(match[0]); } catch (e2) {}\n      }\n    }\n  }\n}\n\nif (!pourquoiInput) {\n  throw new Error('Aucun pourquoi exploitable dans la réponse Anthropic. Raw : ' + JSON.stringify(r).slice(0, 500));\n}\n\n// --- Normalisation défensive (au cas où Claude omet un champ) ---\nconst now = new Date().toISOString();\nconst pourquoi = {\n  verdict: pourquoiInput.verdict || '',\n  fil_temporel: Array.isArray(pourquoiInput.fil_temporel) ? pourquoiInput.fil_temporel : [],\n  recommandation: {\n    cause_probable: (pourquoiInput.recommandation && pourquoiInput.recommandation.cause_probable) || 'NA',\n    action: (pourquoiInput.recommandation && pourquoiInput.recommandation.action) || 'NA',\n    delai: (pourquoiInput.recommandation && pourquoiInput.recommandation.delai) || 'NA'\n  }\n};\n\nconst response = {\n  success: true,\n  cached: false,\n  generated_at: now,\n  intervention_id: recId,\n  pourquoi: pourquoi\n};\n\nreturn [{\n  json: {\n    ...response,\n    _cache_payload: {\n      cache_key: `pourquoi-int-${recId}-v1`,\n      endpoint: 'pourquoi',\n      response_json: JSON.stringify(response),\n      generated_at: now,\n      ttl_hours: 720,\n      notes: `Auto-généré par workflow Pourquoi pour ${recId}`\n    }\n  }\n}];"
+      },
+      "id": "44b5444a-3015-481c-99da-b30dbe727168",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appnrAPrFQBdyvh2u"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tbl977Mbq2hel0d2E"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "cache_key": "={{ $json._cache_payload.cache_key }}",
+            "endpoint": "={{ $json._cache_payload.endpoint }}",
+            "response_json": "={{ $json._cache_payload.response_json }}",
+            "generated_at": "={{ $json._cache_payload.generated_at }}",
+            "ttl_hours": "={{ $json._cache_payload.ttl_hours }}",
+            "notes": "={{ $json._cache_payload.notes }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "c39e99af-3d6d-414f-9690-aa959e7ed879",
+      "name": "Airtable Cache Write",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2032,
+        64
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "KKIzA6NTMUpSGAU2",
+          "name": "Airtable Personal Access Token account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// On reprend la réponse construite par Format Response\n// et on enlève le _cache_payload avant de répondre au client\nconst src = $('Format Response').first().json;\nconst { _cache_payload, ...clean } = src;\nreturn [{ json: clean }];"
+      },
+      "id": "f164c9cc-e230-4940-b325-2772c57253d5",
+      "name": "Strip Internal Fields",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "bc930f8b-b6d9-46ff-8eba-d4bfcb4e601a",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2480,
+        64
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Pourquoi": {
+      "main": [
+        [
+          {
+            "node": "IF Auth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Auth": {
+      "main": [
+        [
+          {
+            "node": "Airtable Cache Read",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 401",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Cache Read": {
+      "main": [
+        [
+          {
+            "node": "IF Cache Hit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Cache Hit": {
+      "main": [
+        [
+          {
+            "node": "Format Cached Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Search Intervention Cible",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Cached Response": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Intervention Cible": {
+      "main": [
+        [
+          {
+            "node": "IF Intervention Trouvée",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Intervention Trouvée": {
+      "main": [
+        [
+          {
+            "node": "Search Machine",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 404",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Machine": {
+      "main": [
+        [
+          {
+            "node": "Search Historique",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Historique": {
+      "main": [
+        [
+          {
+            "node": "Format Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Prompt": {
+      "main": [
+        [
+          {
+            "node": "HTTP Anthropic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Anthropic": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Airtable Cache Write",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Cache Write": {
+      "main": [
+        [
+          {
+            "node": "Strip Internal Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Strip Internal Fields": {
+      "main": [
+        [
+          {
+            "node": "Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "8a68d70c-30b1-4255-8832-955f502195b4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e36c05e0e6a1b0bc20d47b3d27f3ffcdd965a3f8485cee7cbd6531808d23635"
+  },
+  "id": "HefBNyXXCbVJvFlP",
+  "tags": []
+}
