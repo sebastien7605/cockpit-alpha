@@ -1,0 +1,237 @@
+{
+  "name": "Cockpit Alpha API - Agents",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "cockpit-alpha/agents",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "c5dce861-a3aa-464e-baab-278165187cc3",
+      "name": "Webhook GET /agents",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -384,
+        -80
+      ],
+      "webhookId": "cockpit-alpha-agents-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "=0181470cf3f940a78d5843d6af042611",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond-2",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7c9df16a-b86f-4e91-b92e-6d922c571f62",
+      "name": "IF X-Api-Key valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appnrAPrFQBdyvh2u",
+          "mode": "list",
+          "cachedResultName": "Cockpit Alpha",
+          "cachedResultUrl": "https://airtable.com/appnrAPrFQBdyvh2u"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblNIhnRDYVUsKIWQ",
+          "mode": "list",
+          "cachedResultName": "Agents",
+          "cachedResultUrl": "https://airtable.com/appnrAPrFQBdyvh2u/tblNIhnRDYVUsKIWQ"
+        },
+        "options": {}
+      },
+      "id": "b0a22d18-aef7-4d73-aafb-cbb036d8d5c1",
+      "name": "Airtable Search Agents",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        64,
+        -192
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "loGh31J4t25oFtyj",
+          "name": "Airtable Cockpit Alpha (readonly)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform Airtable records into a flat JSON for the frontend\nconst records = $input.all();\n\nconst agents = records.map(item => {\n  const f = item.json;  // CORRIGÉ : pas de .fields, fields sont à la racine\n  return {\n    rec_id: f.id,\n    id_agent: f.ID_Agent || null,\n    nom: f.Nom || '',\n    prenom: f.Prenom || '',\n    equipe: f.Equipe || '',\n    role: f.Role || '',\n    statut: f.Statut || '',\n    habilitations: f.Habilitations || [],\n    date_embauche: f.Date_embauche || null,\n    email: f.Email || '',\n    telephone: f['Téléphone'] || '',\n    prochaine_habilitation: f.Date_prochaine_Habilitation_a_renouveler || null,\n    notes: f.Notes_agent || ''\n  };\n});\n\nreturn [{\n  json: {\n    success: true,\n    count: agents.length,\n    timestamp: new Date().toISOString(),\n    agents: agents\n  }\n}];"
+      },
+      "id": "3304efc4-17b1-4bb6-9d86-c3046b44daf6",
+      "name": "Transform Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "671ae0d4-5484-4883-8aaa-23add0b0caee",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Unauthorized\", \"message\": \"Invalid or missing X-Api-Key header\" } }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7d154338-c7d1-4694-838d-3cda14e6a4f1",
+      "name": "Respond 401 Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        64,
+        48
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook GET /agents": {
+      "main": [
+        [
+          {
+            "node": "IF X-Api-Key valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF X-Api-Key valid": {
+      "main": [
+        [
+          {
+            "node": "Airtable Search Agents",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 401 Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Search Agents": {
+      "main": [
+        [
+          {
+            "node": "Transform Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Records": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "versionId": "16088c50-63eb-4853-b507-fba50d10bdc7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e36c05e0e6a1b0bc20d47b3d27f3ffcdd965a3f8485cee7cbd6531808d23635"
+  },
+  "id": "emAILpgZsW7e3Szh",
+  "tags": []
+}

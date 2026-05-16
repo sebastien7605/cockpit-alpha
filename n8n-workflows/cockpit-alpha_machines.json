@@ -1,0 +1,233 @@
+{
+  "name": "cockpit-alpha/machines",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "=0181470cf3f940a78d5843d6af042611",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond-2",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8bcce842-2b81-456e-a3fc-7256f7e8b849",
+      "name": "IF X-Api-Key valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform Airtable Machines records into a flat JSON for the frontend\nconst records = $input.all();\n\nconst machines = records.map(item => {\n  const f = item.json;\n  return {\n    rec_id: f.id,\n    id_machine: f.ID_Machine ?? null,\n    nom: f.Nom_machine || '',\n    type: f.Type || '',\n    localisation: f.Localisation || '',\n    etat: f.Etat || '',\n    constructeur: f.Constructeur || '',\n    num_serie: f.Num_serie || '',\n    date_mise_service: f.Date_mise_service || null,\n    derniere_maintenance: f.Derniere_maintenance || null,\n    prochaine_maintenance: f.Prochaine_maintenance_Preventive || null,\n    garantie_expiration: f.Garantie_expiration || null,\n    nb_interventions: Array.isArray(f.Interventions) ? f.Interventions.length : 0,\n    nb_agents_assignes: Array.isArray(f.Agents_assignes) ? f.Agents_assignes.length : 0\n  };\n});\n\nreturn [{\n  json: {\n    success: true,\n    count: machines.length,\n    timestamp: new Date().toISOString(),\n    machines: machines\n  }\n}];"
+      },
+      "id": "d78599d2-53da-4c37-a220-98fc4bf822be",
+      "name": "Transform Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "0d97108a-443a-495c-8c20-713ff914b467",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        496,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Unauthorized\", \"message\": \"Invalid or missing X-Api-Key header\" } }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "1f05bae2-8009-4ef6-9df8-bc793a725c72",
+      "name": "Respond 401 Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        64,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "mode": "id",
+          "value": "appnrAPrFQBdyvh2u"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblD7r8bGck29a6cw",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "26b34ed1-f07e-4074-83e2-67cde76b5698",
+      "name": "Airtable Search Machines",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        64,
+        -192
+      ],
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "loGh31J4t25oFtyj",
+          "name": "Airtable Cockpit Alpha (readonly)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "cockpit-alpha/machines",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -416,
+        -80
+      ],
+      "id": "1c847760-71b2-44d6-9ea6-56eec806a8d8",
+      "name": "Webhook GET /machines",
+      "webhookId": "e2bfa8a3-bf9d-4c83-a7c8-75f1e4bc91a0"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "IF X-Api-Key valid": {
+      "main": [
+        [
+          {
+            "node": "Airtable Search Machines",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 401 Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Records": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Search Machines": {
+      "main": [
+        [
+          {
+            "node": "Transform Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook GET /machines": {
+      "main": [
+        [
+          {
+            "node": "IF X-Api-Key valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "versionId": "2f1a4290-29a2-4a8c-b011-1282924c349a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e36c05e0e6a1b0bc20d47b3d27f3ffcdd965a3f8485cee7cbd6531808d23635"
+  },
+  "id": "VjnoAzdJIu2yaTWn",
+  "tags": []
+}

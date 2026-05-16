@@ -1,0 +1,238 @@
+{
+  "name": "Cockpit Alpha API - Interventions",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "cockpit-alpha/interventions",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "e4f7e211-eb86-4914-bfb0-234cd99999b2",
+      "name": "Webhook GET /interventions",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -528,
+        -80
+      ],
+      "webhookId": "interventions-webhook-id"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "0181470cf3f940a78d5843d6af042611",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cond-2",
+              "leftValue": "={{ $json.headers['x-api-key'] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "db2937af-e7b0-4dd1-ac7b-18ef492e3ac2",
+      "name": "IF X-Api-Key valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -272,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appnrAPrFQBdyvh2u",
+          "mode": "list",
+          "cachedResultName": "Cockpit Alpha",
+          "cachedResultUrl": "https://airtable.com/appnrAPrFQBdyvh2u"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl8Ndg94K5dTH07s",
+          "mode": "list",
+          "cachedResultName": "Interventions",
+          "cachedResultUrl": "https://airtable.com/appnrAPrFQBdyvh2u/tbl8Ndg94K5dTH07s"
+        },
+        "options": {}
+      },
+      "id": "13c22440-9136-4650-b469-d6bd1900a08e",
+      "name": "Airtable Search Interventions",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        -192
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "loGh31J4t25oFtyj",
+          "name": "Airtable Cockpit Alpha (readonly)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transform Airtable Interventions → JSON propre pour le front W-E3\n// Noms vérifiés depuis output réel du node Airtable Search (15/05/2026)\n// + Lookups Machine_nom et Agent_nom ajoutés Phase 2 (16/05/2026)\n\nconst records = $input.all();\n\nconst getSelectName = (val) => {\n  if (!val) return null;\n  if (typeof val === 'string') return val;\n  if (val.name) return val.name;\n  return null;\n};\n\nconst getLinkedRecordId = (val) => {\n  if (!Array.isArray(val) || val.length === 0) return null;\n  const first = val[0];\n  if (typeof first === 'string') return first;\n  if (first && first.id) return first.id;\n  return null;\n};\n\nconst getLookupString = (val) => {\n  if (!val) return null;\n  if (typeof val === 'string') return val;\n  if (Array.isArray(val) && val.length > 0) {\n    const first = val[0];\n    if (typeof first === 'string') return first;\n    if (first && first.name) return first.name;\n  }\n  return null;\n};\n\nconst interventions = records.map(item => {\n  const f = item.json;\n  const dureeMin = typeof f.Duree_min === 'number' ? f.Duree_min : null;\n\n  return {\n    rec_id: f.id,\n    id_intervention: f.ID_Intervention ?? null,\n    date: f.Date || null,\n    type: getSelectName(f.Type),\n    type_panne: getSelectName(f.Type_panne),\n    statut: getSelectName(f.Statut),\n    duree_minutes: dureeMin,\n    duree_h: dureeMin !== null ? Math.round((dureeMin / 60) * 10) / 10 : null,\n    cout_estime: typeof f.Cout_estime === 'number' ? f.Cout_estime : null,\n    description: f.Description || '',\n    pieces_utilisees: f['Pièces_utilisées'] || '',\n    remarques_rapport: f.Remarques_rapport || '',\n    machine_rec_id: getLinkedRecordId(f.Machine),\n    machine_nom: getLookupString(f.Machine_nom),\n    agent_rec_id: getLinkedRecordId(f.Agent_intervenant),\n    agent_nom: getLookupString(f.Agent_nom)\n  };\n});\n\nreturn [{\n  json: {\n    success: true,\n    count: interventions.length,\n    timestamp: new Date().toISOString(),\n    interventions: interventions\n  }\n}];"
+      },
+      "id": "c9f5d6c0-462e-4900-8c34-5382e7c6d494",
+      "name": "Transform Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d94d1550-0bd3-4598-9e36-0bf0714cd496",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        384,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": \"Unauthorized\", \"message\": \"Invalid or missing X-Api-Key header\" } }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "0178dfd7-1ad5-4681-90ab-ed05b91ab37f",
+      "name": "Respond 401 Unauthorized",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        48
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook GET /interventions": {
+      "main": [
+        [
+          {
+            "node": "IF X-Api-Key valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF X-Api-Key valid": {
+      "main": [
+        [
+          {
+            "node": "Airtable Search Interventions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 401 Unauthorized",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable Search Interventions": {
+      "main": [
+        [
+          {
+            "node": "Transform Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Records": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "versionId": "42b43ec6-c4e4-4416-829f-03ab6b118e5b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5e36c05e0e6a1b0bc20d47b3d27f3ffcdd965a3f8485cee7cbd6531808d23635"
+  },
+  "id": "T91iV3G0y9sbfF1a",
+  "tags": []
+}
