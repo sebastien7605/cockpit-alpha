@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cockpit Alpha — Maintenance / Interventions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.10/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif; }
+    .kpi-card { transition: all .15s ease; }
+    .kpi-card.active { box-shadow: 0 0 0 2px currentColor inset; }
+    .interv-card { transition: all .15s ease; }
+    .interv-card:hover { border-color: rgb(15 23 42 / .2); transform: translateY(-1px); }
+    .pulse-dot { animation: pulse 2s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+    /* Signal de tension métier (préfigure le moment IA Phase 4) */
+    .tension-line {
+      border-top: 1px solid rgb(241 245 249);
+      color: rgb(120 113 108);
+      font-size: 0.75rem;
+      letter-spacing: 0.01em;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen antialiased">
+
+  <!-- HEADER -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded bg-slate-900 flex items-center justify-center">
+          <span class="text-white text-xs font-bold tracking-tight">CA</span>
+        </div>
+        <div>
+          <h1 class="text-sm font-semibold text-slate-900 leading-tight">Cockpit Alpha</h1>
+          <p class="text-xs text-slate-500 leading-tight">Société Alpha · pilotage opérationnel</p>
+        </div>
+      </div>
+      <nav class="flex gap-1 text-sm">
+        <a href="/index.html"
+           class="px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-100 transition">Agents</a>
+        <a href="/machines.html"
+           class="px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-100 transition">Machines</a>
+        <a href="/maintenance.html"
+           class="px-3 py-1.5 rounded-md bg-slate-900 text-white">Maintenance</a>
+        <span class="px-3 py-1.5 rounded-md text-slate-300 cursor-not-allowed">Planning</span>
+      </nav>
+    </div>
+  </header>
+
+  <main x-data="interventionsApp()" x-init="load()" class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- TITRE + META -->
+    <div class="flex items-end justify-between mb-6 flex-wrap gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Maintenance · Interventions</p>
+        <h2 class="text-3xl font-semibold text-slate-900 mt-1 tracking-tight">Activité maintenance du parc</h2>
+        <p class="text-sm text-slate-500 mt-2">Préventif, curatif, incidents · suivi temps réel</p>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-slate-500">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
+        <span>Sync <span x-text="lastSync"></span></span>
+        <button @click="load()" class="ml-2 px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-600">
+          ↻ Actualiser
+        </button>
+      </div>
+    </div>
+
+    <!-- LOADER -->
+    <div x-show="loading" class="bg-white border border-slate-200 rounded-xl p-16 text-center">
+      <div class="inline-flex items-center gap-3 text-slate-500">
+        <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+        <span class="text-sm">Chargement des interventions…</span>
+      </div>
+    </div>
+
+    <!-- ERREUR -->
+    <div x-show="error" x-cloak class="bg-red-50 border border-red-200 rounded-xl p-6">
+      <p class="text-sm text-red-800 font-medium">Impossible de charger les interventions.</p>
+      <p class="text-xs text-red-600 mt-1" x-text="error"></p>
+      <button @click="load()" class="mt-3 text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700">Réessayer</button>
+    </div>
+
+    <!-- CONTENU PRINCIPAL -->
+    <div x-show="!loading && !error" x-cloak>
+
+      <!-- 4 KPI CARDS CLIQUABLES -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <button @click="toggleFilter('enCours')"
+                class="kpi-card text-left bg-white border border-slate-200 rounded-xl p-4 hover:border-amber-400"
+                :class="filterKpi === 'enCours' ? 'active text-amber-600' : ''">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase tracking-wider text-slate-500 font-medium">En cours</span>
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-semibold text-slate-900" x-text="kpis.enCours"></span>
+            <span class="text-sm text-slate-400">interv.</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">chantiers ouverts</div>
+        </button>
+
+        <button @click="toggleFilter('terminees30j')"
+                class="kpi-card text-left bg-white border border-slate-200 rounded-xl p-4 hover:border-emerald-400"
+                :class="filterKpi === 'terminees30j' ? 'active text-emerald-600' : ''">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase tracking-wider text-slate-500 font-medium">Terminées 30j</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-semibold text-slate-900" x-text="kpis.terminees30j"></span>
+            <span class="text-sm text-slate-400">interv.</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">rythme du mois</div>
+        </button>
+
+        <button @click="toggleFilter('dureeMoy30j')"
+                class="kpi-card text-left bg-white border border-slate-200 rounded-xl p-4 hover:border-slate-400"
+                :class="filterKpi === 'dureeMoy30j' ? 'active text-slate-900' : ''">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase tracking-wider text-slate-500 font-medium">Durée moyenne 30j</span>
+            <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-semibold text-slate-900" x-text="kpis.dureeMoy30j"></span>
+            <span class="text-sm text-slate-400">heures</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">par intervention</div>
+        </button>
+
+        <button @click="toggleFilter('machinesSignal')"
+                class="kpi-card text-left bg-white border border-slate-200 rounded-xl p-4 hover:border-red-400"
+                :class="filterKpi === 'machinesSignal' ? 'active text-red-600' : ''">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase tracking-wider text-slate-500 font-medium">Machines à signal</span>
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span class="text-3xl font-semibold text-slate-900" x-text="kpis.machinesSignal"></span>
+            <span class="text-sm text-slate-400">machines</span>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">patterns à creuser</div>
+        </button>
+      </div>
+
+      <!-- BANDEAU À SURVEILLER (top 3 par scoring tension) -->
+      <div x-show="aSurveiller.length > 0" class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-5 mb-6 text-white">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-400 font-medium">Lecture des interventions — points d'attention</p>
+            <h3 class="text-base font-semibold mt-0.5">À surveiller</h3>
+          </div>
+          <span class="text-xs text-slate-400" x-text="aSurveiller.length + ' intervention' + (aSurveiller.length > 1 ? 's' : '')"></span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <template x-for="i in aSurveiller" :key="i.rec_id">
+            <button @click="openDrawer(i)"
+                    class="text-left bg-slate-700/50 hover:bg-slate-700 rounded-lg p-3 border border-slate-600 transition">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                      :class="darkTypeClass(i.type)" x-text="i.type"></span>
+                <span class="text-xs text-slate-400" x-text="formatDateShort(i.date)"></span>
+              </div>
+              <div class="font-medium text-sm" x-text="i.machine_nom || '—'"></div>
+              <div class="text-xs text-slate-400 mt-1" x-text="i._signals.join(' · ')"></div>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- BARRE FILTRES + RÉSULTATS -->
+      <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">Type</span>
+          <button @click="filterType = null"
+                  class="text-xs px-3 py-1 rounded-full border transition"
+                  :class="filterType === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">
+            Tous
+          </button>
+          <template x-for="t in typesDispo" :key="t">
+            <button @click="filterType = t"
+                    class="text-xs px-3 py-1 rounded-full border transition"
+                    :class="filterType === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'"
+                    x-text="t"></button>
+          </template>
+        </div>
+        <div class="text-xs text-slate-500">
+          <span x-text="filtered.length"></span> intervention<span x-show="filtered.length > 1">s</span> affichée<span x-show="filtered.length > 1">s</span>
+          <span x-show="filterType || filterKpi" class="ml-2">
+            · <button @click="filterType = null; filterKpi = null" class="text-slate-700 underline hover:text-slate-900">tout réinitialiser</button>
+          </span>
+        </div>
+      </div>
+
+      <!-- LISTE INTERVENTIONS — CARTES -->
+      <div class="space-y-2">
+        <template x-for="i in filtered" :key="i.rec_id">
+          <button @click="openDrawer(i)"
+                  class="interv-card w-full text-left bg-white border border-slate-200 rounded-lg p-4 hover:shadow-sm">
+
+            <!-- Ligne principale -->
+            <div class="flex items-center gap-4">
+
+              <!-- COL 1 : STATUT (rond + libellé court) -->
+              <div class="flex flex-col items-center w-16 flex-shrink-0">
+                <span class="w-3 h-3 rounded-full mb-1" :class="statutDotClass(i.statut)"></span>
+                <span class="text-xs text-slate-400" x-text="formatDateShort(i.date)"></span>
+              </div>
+
+              <!-- COL 2 : MACHINE + TYPE + AGENT -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                  <span class="font-semibold text-slate-900 truncate" x-text="i.machine_nom || '—'"></span>
+                  <span class="text-xs px-2 py-0.5 rounded-full border flex-shrink-0"
+                        :class="typeBadgeClass(i.type)" x-text="i.type"></span>
+                  <span class="text-xs px-2 py-0.5 rounded-full border flex-shrink-0"
+                        :class="statutBadgeClass(i.statut)" x-text="i.statut"></span>
+                </div>
+                <div class="text-xs text-slate-500 flex items-center gap-3 flex-wrap">
+                  <span x-text="i.agent_nom || '—'"></span>
+                  <span class="text-slate-300">·</span>
+                  <span x-show="i.duree_h !== null"><span x-text="i.duree_h"></span> h</span>
+                  <span x-show="i.duree_h !== null" class="text-slate-300">·</span>
+                  <span x-show="i.cout_estime !== null" x-text="formatEuro(i.cout_estime)"></span>
+                  <span x-show="i.type_panne" class="text-slate-300">·</span>
+                  <span x-show="i.type_panne" x-text="i.type_panne"></span>
+                </div>
+              </div>
+
+              <!-- COL 3 : CHEVRON -->
+              <div class="text-slate-300 flex-shrink-0">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Ligne tension métier (si signal détecté) -->
+            <div x-show="i._signals.length > 0"
+                 class="tension-line mt-3 pt-2"
+                 x-text="i._signals.join(' · ')"></div>
+          </button>
+        </template>
+
+        <div x-show="filtered.length === 0" class="bg-white border border-dashed border-slate-200 rounded-lg p-8 text-center text-sm text-slate-500">
+          Aucune intervention ne correspond aux filtres actifs.
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400 mt-8 text-center">
+        Données fictives Société Alpha · démonstration
+      </p>
+    </div>
+
+    <!-- DRAWER LATÉRAL DÉTAIL INTERVENTION -->
+    <div x-show="selected" x-cloak
+         @keydown.escape.window="closeDrawer()"
+         class="fixed inset-0 z-50">
+
+      <!-- backdrop -->
+      <div x-show="selected"
+           x-transition:enter="transition ease-out duration-200"
+           x-transition:enter-start="opacity-0"
+           x-transition:enter-end="opacity-100"
+           x-transition:leave="transition ease-in duration-150"
+           x-transition:leave-start="opacity-100"
+           x-transition:leave-end="opacity-0"
+           @click="closeDrawer()"
+           class="absolute inset-0 bg-slate-900/40"></div>
+
+      <!-- drawer -->
+      <div x-show="selected"
+           x-transition:enter="transition ease-out duration-250"
+           x-transition:enter-start="translate-x-full"
+           x-transition:enter-end="translate-x-0"
+           x-transition:leave="transition ease-in duration-200"
+           x-transition:leave-start="translate-x-0"
+           x-transition:leave-end="translate-x-full"
+           class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl overflow-y-auto">
+        <template x-if="selected">
+          <div class="p-6">
+
+            <!-- En-tête drawer -->
+            <div class="flex items-start justify-between mb-6">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                  <span class="w-2 h-2 rounded-full" :class="statutDotClass(selected.statut)"></span>
+                  <span class="text-xs px-2 py-0.5 rounded-full border" :class="statutBadgeClass(selected.statut)" x-text="selected.statut"></span>
+                  <span class="text-xs px-2 py-0.5 rounded-full border" :class="typeBadgeClass(selected.type)" x-text="selected.type"></span>
+                  <span class="text-xs text-slate-400 font-mono" x-text="'#' + selected.id_intervention"></span>
+                </div>
+                <h3 class="text-xl font-semibold text-slate-900" x-text="selected.machine_nom || '—'"></h3>
+                <p class="text-sm text-slate-500 mt-1">
+                  <span x-text="formatDate(selected.date)"></span>
+                  <span x-show="selected.agent_nom"> · par <span x-text="selected.agent_nom"></span></span>
+                </p>
+              </div>
+              <button @click="closeDrawer()" class="p-1 rounded hover:bg-slate-100 text-slate-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Signaux de tension (préfigure Phase 4) -->
+            <div x-show="selected._signals.length > 0" class="mb-6">
+              <h4 class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Points d'attention</h4>
+              <div class="bg-slate-50 rounded-lg p-4 space-y-2">
+                <template x-for="(s, i) in selected._signals" :key="i">
+                  <div class="flex items-start gap-2 text-sm text-slate-700">
+                    <span class="text-slate-400 mt-0.5">›</span>
+                    <span x-text="s"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Métriques -->
+            <div class="mb-6">
+              <h4 class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Métriques</h4>
+              <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-50 rounded-lg p-4">
+                  <div class="text-2xl font-semibold text-slate-900">
+                    <span x-text="selected.duree_h !== null ? selected.duree_h : '—'"></span>
+                    <span x-show="selected.duree_h !== null" class="text-sm text-slate-400 font-normal ml-1">h</span>
+                  </div>
+                  <div class="text-xs text-slate-500 uppercase tracking-wider mt-1">Durée</div>
+                </div>
+                <div class="bg-slate-50 rounded-lg p-4">
+                  <div class="text-2xl font-semibold text-slate-900" x-text="selected.cout_estime !== null ? formatEuro(selected.cout_estime) : '—'"></div>
+                  <div class="text-xs text-slate-500 uppercase tracking-wider mt-1">Coût estimé</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-6" x-show="selected.description">
+              <h4 class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Description</h4>
+              <p class="text-sm text-slate-700 leading-relaxed" x-text="selected.description"></p>
+            </div>
+
+            <!-- Pièces utilisées -->
+            <div class="mb-6" x-show="selected.pieces_utilisees">
+              <h4 class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Pièces utilisées</h4>
+              <p class="text-sm text-slate-700 leading-relaxed" x-text="selected.pieces_utilisees"></p>
+            </div>
+
+            <!-- Rapport / Remarques -->
+            <div class="mb-6" x-show="selected.remarques_rapport">
+              <h4 class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Rapport</h4>
+              <div class="bg-slate-50 rounded-lg p-4">
+                <p class="text-sm text-slate-700 leading-relaxed" x-text="selected.remarques_rapport"></p>
+              </div>
+            </div>
+
+            <!-- Détails complémentaires -->
+            <div>
+              <h4 class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Détails</h4>
+              <dl class="space-y-2 text-sm">
+                <div class="flex justify-between gap-4">
+                  <dt class="text-slate-500">Type de panne</dt>
+                  <dd class="text-slate-900 font-medium text-right" x-text="selected.type_panne || '—'"></dd>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <dt class="text-slate-500">Statut</dt>
+                  <dd class="text-slate-900 font-medium text-right" x-text="selected.statut"></dd>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <dt class="text-slate-500">Référence</dt>
+                  <dd class="text-slate-900 font-mono text-xs text-right" x-text="selected.id_intervention"></dd>
+                </div>
+              </dl>
+            </div>
+
+            <!-- Placeholder bouton Pourquoi (Phase 4) -->
+            <div class="mt-8 pt-6 border-t border-slate-100">
+              <button disabled
+                      class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-100 text-slate-400 text-sm font-medium px-4 py-3 cursor-not-allowed border border-slate-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093M12 17h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Analyser cette intervention
+                <span class="text-xs text-slate-300 ml-2">· bientôt</span>
+              </button>
+            </div>
+
+          </div>
+        </template>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function interventionsApp() {
+      return {
+        interventions: [],
+        loading: true,
+        error: null,
+        lastSync: '',
+        filterType: null,
+        filterKpi: null,
+        selected: null,
+
+        // "Aujourd'hui démo" : date max des interventions (pas new Date() réel)
+        // pour que les fenêtres 30j/90j/180j soient toujours peuplées
+        todayDemo: null,
+
+        async load() {
+          this.loading = true;
+          this.error = null;
+          try {
+            const res = await fetch('/api/interventions');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message || 'Réponse API invalide');
+
+            let list = data.interventions || [];
+
+            // Date "aujourd'hui démo" = max des dates d'intervention
+            const dates = list.map(i => i.date ? new Date(i.date).getTime() : 0).filter(t => t > 0);
+            this.todayDemo = dates.length ? new Date(Math.max(...dates)) : new Date();
+
+            // Enrichissement : signaux de tension par intervention
+            list = list.map(i => ({ ...i, _signals: [], _score: 0 }));
+            list = this.computeSignals(list);
+
+            this.interventions = list;
+            this.lastSync = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+          } catch (e) {
+            this.error = e.message;
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        // === SIGNAUX DE TENSION — 4 critères multi-axes ===
+        // 1. Récurrence machine : >=3 interv. sur la même machine en 90j
+        // 2. Récurrence type_panne : >=2 même type_panne sur même machine en 180j
+        // 3. Première intervention sur cette machine pour cet agent (ET machine a >=2 interv. antérieures)
+        // 4. En cours > 14 jours
+        computeSignals(list) {
+          const today = this.todayDemo;
+          const day = 86400000;
+
+          // Trier par date asc pour calculs "antérieures"
+          const sortedAsc = [...list].sort((a, b) =>
+            new Date(a.date || 0) - new Date(b.date || 0)
+          );
+
+          // Index : interventions par machine
+          const byMachine = {};
+          sortedAsc.forEach(i => {
+            if (!i.machine_rec_id) return;
+            (byMachine[i.machine_rec_id] = byMachine[i.machine_rec_id] || []).push(i);
+          });
+
+          return list.map(i => {
+            const signals = [];
+            let score = 0;
+
+            if (!i.machine_rec_id || !i.date) {
+              return { ...i, _signals: signals, _score: score };
+            }
+
+            const dateI = new Date(i.date);
+            const machineHistory = byMachine[i.machine_rec_id] || [];
+
+            // Critère 1 : récurrence machine 90j (centrée sur cette intervention)
+            const recent90 = machineHistory.filter(h => {
+              const dh = new Date(h.date);
+              return Math.abs(dh - dateI) / day <= 90;
+            });
+            if (recent90.length >= 3) {
+              signals.push(recent90.length + 'ᵉ intervention sur cette machine en 6 mois');
+              score += recent90.length * 2;
+            }
+
+            // Critère 2 : récurrence type_panne 180j
+            if (i.type_panne) {
+              const samePanne = machineHistory.filter(h => {
+                if (!h.type_panne || h.type_panne !== i.type_panne) return false;
+                const dh = new Date(h.date);
+                return Math.abs(dh - dateI) / day <= 180;
+              });
+              if (samePanne.length >= 2) {
+                signals.push('Même panne déjà vue ' + (samePanne.length - 1) + ' fois');
+                score += samePanne.length * 4;
+              }
+            }
+
+            // Critère 3 : 1ʳᵉ intervention sur cette machine pour cet agent
+            //            (ET la machine a >=2 interventions antérieures)
+            if (i.agent_rec_id) {
+              const anteriores = machineHistory.filter(h =>
+                new Date(h.date) < dateI
+              );
+              const memeAgentAvant = anteriores.some(h => h.agent_rec_id === i.agent_rec_id);
+              if (anteriores.length >= 2 && !memeAgentAvant) {
+                signals.push('Première intervention sur cette machine');
+                score += 3;
+              }
+            }
+
+            // Critère 4 : En cours > 14j
+            if (i.statut === 'En cours') {
+              const joursOuvert = Math.round((today - dateI) / day);
+              if (joursOuvert > 14) {
+                signals.push('Ouvert depuis ' + joursOuvert + ' jours');
+                score += joursOuvert;
+              }
+            }
+
+            return { ...i, _signals: signals, _score: score };
+          });
+        },
+
+        // === KPIs ===
+        get kpis() {
+          if (!this.interventions.length || !this.todayDemo) {
+            return { enCours: 0, terminees30j: 0, dureeMoy30j: 0, machinesSignal: 0 };
+          }
+          const day = 86400000;
+          const seuil30 = new Date(this.todayDemo - 30 * day);
+
+          const recent = this.interventions.filter(i =>
+            i.date && new Date(i.date) >= seuil30
+          );
+
+          const enCours = this.interventions.filter(i => i.statut === 'En cours').length;
+          const terminees30j = recent.filter(i => i.statut === 'Terminée').length;
+
+          const dureesValides = recent.map(i => i.duree_h).filter(v => v !== null && v > 0);
+          const dureeMoy30j = dureesValides.length
+            ? Math.round((dureesValides.reduce((s, v) => s + v, 0) / dureesValides.length) * 10) / 10
+            : 0;
+
+          const machinesSignal = new Set(
+            this.interventions
+              .filter(i => i._signals.length > 0 && i.machine_rec_id)
+              .map(i => i.machine_rec_id)
+          ).size;
+
+          return { enCours, terminees30j, dureeMoy30j, machinesSignal };
+        },
+
+        // === Bandeau "À surveiller" : top 3 par score ===
+        get aSurveiller() {
+          return [...this.interventions]
+            .filter(i => i._score > 0)
+            .sort((a, b) => b._score - a._score)
+            .slice(0, 3);
+        },
+
+        // === Filtres ===
+        get typesDispo() {
+          return [...new Set(this.interventions.map(i => i.type).filter(Boolean))].sort();
+        },
+
+        get filtered() {
+          const day = 86400000;
+          const seuil30 = this.todayDemo ? new Date(this.todayDemo - 30 * day) : null;
+
+          return this.interventions.filter(i => {
+            if (this.filterType && i.type !== this.filterType) return false;
+
+            if (this.filterKpi === 'enCours' && i.statut !== 'En cours') return false;
+            if (this.filterKpi === 'terminees30j') {
+              if (i.statut !== 'Terminée') return false;
+              if (!i.date || new Date(i.date) < seuil30) return false;
+            }
+            if (this.filterKpi === 'dureeMoy30j') {
+              if (!i.date || new Date(i.date) < seuil30) return false;
+            }
+            if (this.filterKpi === 'machinesSignal' && i._signals.length === 0) return false;
+
+            return true;
+          }).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        },
+
+        toggleFilter(kpi) {
+          this.filterKpi = (this.filterKpi === kpi) ? null : kpi;
+        },
+
+        openDrawer(i) { this.selected = i; },
+        closeDrawer() { this.selected = null; },
+
+        // === Helpers de format ===
+        formatDate(iso) {
+          if (!iso) return '—';
+          const d = new Date(iso);
+          if (isNaN(d)) return iso;
+          return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        },
+        formatDateShort(iso) {
+          if (!iso) return '—';
+          const d = new Date(iso);
+          if (isNaN(d)) return iso;
+          return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        },
+        formatEuro(n) {
+          if (n === null || n === undefined) return '—';
+          return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+        },
+
+        // === Helpers de couleur ===
+        typeBadgeClass(type) {
+          switch (type) {
+            case 'Préventive': return 'bg-slate-50 text-slate-700 border-slate-200';
+            case 'Curative':   return 'bg-sky-50 text-sky-700 border-sky-200';
+            case 'Incident':   return 'bg-red-50 text-red-700 border-red-200';
+            default:           return 'bg-slate-50 text-slate-600 border-slate-200';
+          }
+        },
+        darkTypeClass(type) {
+          switch (type) {
+            case 'Préventive': return 'bg-slate-500/20 text-slate-200';
+            case 'Curative':   return 'bg-sky-500/20 text-sky-300';
+            case 'Incident':   return 'bg-red-500/20 text-red-300';
+            default:           return 'bg-slate-500/20 text-slate-300';
+          }
+        },
+        statutBadgeClass(statut) {
+          switch (statut) {
+            case 'Terminée':   return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            case 'En cours':   return 'bg-amber-50 text-amber-700 border-amber-200';
+            case 'Planifiée':  return 'bg-sky-50 text-sky-700 border-sky-200';
+            case 'Annulée':   return 'bg-slate-50 text-slate-500 border-slate-200';
+            default:           return 'bg-slate-50 text-slate-600 border-slate-200';
+          }
+        },
+        statutDotClass(statut) {
+          switch (statut) {
+            case 'Terminée':   return 'bg-emerald-500';
+            case 'En cours':   return 'bg-amber-500';
+            case 'Planifiée':  return 'bg-sky-500';
+            case 'Annulée':    return 'bg-slate-400';
+            default:           return 'bg-slate-400';
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
