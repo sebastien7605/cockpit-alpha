@@ -496,13 +496,16 @@
             const dateI = new Date(i.date);
             const machineHistory = byMachine[i.machine_rec_id] || [];
 
-            // Critère 1 : récurrence machine 90j (centrée sur cette intervention)
+            // Critère 1 (DURCI Phase 4) : récurrence machine 90j hors Préventive
+            // Une machine qui a 3 préventives en 6 mois n'est pas un signal de tension :
+            // c'est le cycle normal. Seules les Curative / Incident / Contrôle comptent.
             const recent90 = machineHistory.filter(h => {
+              if (h.type === 'Préventive') return false;
               const dh = new Date(h.date);
               return Math.abs(dh - dateI) / day <= 90;
             });
             if (recent90.length >= 3) {
-              signals.push(recent90.length + 'ᵉ intervention sur cette machine en 6 mois');
+              signals.push(recent90.length + ' interventions non-préventives sur cette machine en 6 mois');
               score += recent90.length * 2;
             }
 
