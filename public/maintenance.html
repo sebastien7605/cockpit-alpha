@@ -193,7 +193,9 @@
           </template>
         </div>
         <div class="text-xs text-slate-500">
-          <span x-text="filtered.length"></span> intervention<span x-show="filtered.length > 1">s</span> affichée<span x-show="filtered.length > 1">s</span>
+          <span x-text="filtered.length"></span>
+          <span x-show="filterKpi === 'machinesSignal'"> machine<span x-show="filtered.length > 1">s</span> affichée<span x-show="filtered.length > 1">s</span></span>
+          <span x-show="filterKpi !== 'machinesSignal'"> intervention<span x-show="filtered.length > 1">s</span> affichée<span x-show="filtered.length > 1">s</span></span>
           <span x-show="filterType || filterKpi" class="ml-2">
             · <button @click="filterType = null; filterKpi = null" class="text-slate-700 underline hover:text-slate-900">tout réinitialiser</button>
           </span>
@@ -380,7 +382,7 @@
               </dl>
             </div>
 
-            <!-- Placeholder bouton Pourquoi (Phase 4) -->
+            <!-- Placeholder bouton Pourquoi (sera activé Étape 3 Phase 4) -->
             <div class="mt-8 pt-6 border-t border-slate-100">
               <button disabled
                       class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-100 text-slate-400 text-sm font-medium px-4 py-3 cursor-not-allowed border border-slate-200">
@@ -463,11 +465,11 @@
         },
 
         // === SIGNAUX DE TENSION — 4 critères multi-axes (durcis Phase 4) ===
-        // 1. Récurrence machine : >=3 interv. sur la même machine en 90j
+        // 1. Récurrence machine : >=3 interv. non-préventives sur la même machine en 90j
+        //    (exclut aussi Reportée / Annulée : pas d'événement d'usure)
         // 2. Récurrence type_panne : >=2 même type_panne sur même machine en 180j
         // 3. Première intervention sur cette machine pour cet agent
         //    SEULEMENT si machine a >=5 interv. antérieures ET ce n'est pas une Préventive
-        //    (rotation préventive normale ≠ signal)
         // 4. En cours > 14 jours
         computeSignals(list) {
           const today = this.todayDemo;
@@ -496,11 +498,12 @@
             const dateI = new Date(i.date);
             const machineHistory = byMachine[i.machine_rec_id] || [];
 
-            // Critère 1 (DURCI Phase 4) : récurrence machine 90j hors Préventive
-            // Une machine qui a 3 préventives en 6 mois n'est pas un signal de tension :
-            // c'est le cycle normal. Seules les Curative / Incident / Contrôle comptent.
+            // Critère 1 (DURCI Phase 4) : récurrence machine 90j hors Préventive + hors non-réalisées
+            // Une machine qui a 3 préventives en 6 mois n'est pas un signal de tension : c'est le cycle normal.
+            // Une intervention Reportée / Annulée n'est pas un événement d'usure.
             const recent90 = machineHistory.filter(h => {
               if (h.type === 'Préventive') return false;
+              if (h.statut === 'Reportée' || h.statut === 'Annulée') return false;
               const dh = new Date(h.date);
               return Math.abs(dh - dateI) / day <= 90;
             });
@@ -513,6 +516,7 @@
             if (i.type_panne) {
               const samePanne = machineHistory.filter(h => {
                 if (!h.type_panne || h.type_panne !== i.type_panne) return false;
+                if (h.statut === 'Reportée' || h.statut === 'Annulée') return false;
                 const dh = new Date(h.date);
                 return Math.abs(dh - dateI) / day <= 180;
               });
@@ -523,7 +527,7 @@
             }
 
             // Critère 3 (DURCI Phase 4) :
-            //  - machine doit avoir >=5 interv. antérieures (au lieu de >=2)
+            //  - machine doit avoir >=5 interv. antérieures
             //  - exclure les Préventives (rotation normale ≠ symptôme)
             if (i.agent_rec_id && i.type !== 'Préventive') {
               const anteriores = machineHistory.filter(h =>
@@ -564,7 +568,11 @@
           const enCours = this.interventions.filter(i => i.statut === 'En cours').length;
           const terminees30j = recent.filter(i => i.statut === 'Terminée').length;
 
-          const dureesValides = recent.map(i => i.duree_h).filter(v => v !== null && v > 0);
+          // Durée moyenne 30j : uniquement sur les Terminées 30j avec durée > 0
+          const dureesValides = recent
+            .filter(i => i.statut === 'Terminée')
+            .map(i => i.duree_h)
+            .filter(v => v !== null && v > 0);
           const dureeMoy30j = dureesValides.length
             ? Math.round((dureesValides.reduce((s, v) => s + v, 0) / dureesValides.length) * 10) / 10
             : 0;
@@ -591,10 +599,41 @@
           return [...new Set(this.interventions.map(i => i.type).filter(Boolean))].sort();
         },
 
+        // === Liste filtrée — comportement aligné sur chaque KPI ===
         get filtered() {
           const day = 86400000;
           const seuil30 = this.todayDemo ? new Date(this.todayDemo - 30 * day) : null;
 
+          // Cas spécial : KPI "Machines à signal" = 1 ligne par machine (au plus haut score)
+          // Alignement strict avec le compteur (KPI compte des machines, liste affiche des machines)
+          if (this.filterKpi === 'machinesSignal') {
+            const parMachine = {};
+            this.interventions.forEach(i => {
+              if (i._signals.length === 0 || !i.machine_rec_id) return;
+              if (this.filterType && i.type !== this.filterType) return;
+              const cur = parMachine[i.machine_rec_id];
+              if (!cur || i._score > cur._score) {
+                parMachine[i.machine_rec_id] = i;
+              }
+            });
+            return Object.values(parMachine).sort((a, b) => b._score - a._score);
+          }
+
+          // Cas spécial : KPI "Durée moyenne 30j" = interventions qui ont contribué au calcul
+          // = Terminée + 30 derniers jours + durée > 0
+          if (this.filterKpi === 'dureeMoy30j') {
+            return this.interventions
+              .filter(i => {
+                if (i.statut !== 'Terminée') return false;
+                if (!i.date || new Date(i.date) < seuil30) return false;
+                if (i.duree_h === null || i.duree_h <= 0) return false;
+                if (this.filterType && i.type !== this.filterType) return false;
+                return true;
+              })
+              .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+          }
+
+          // Cas standard : autres filtres (Tous / En cours / Terminées 30j / par type)
           return this.interventions.filter(i => {
             if (this.filterType && i.type !== this.filterType) return false;
 
@@ -603,10 +642,6 @@
               if (i.statut !== 'Terminée') return false;
               if (!i.date || new Date(i.date) < seuil30) return false;
             }
-            if (this.filterKpi === 'dureeMoy30j') {
-              if (!i.date || new Date(i.date) < seuil30) return false;
-            }
-            if (this.filterKpi === 'machinesSignal' && i._signals.length === 0) return false;
 
             return true;
           }).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
@@ -659,7 +694,8 @@
             case 'Terminée':   return 'bg-emerald-50 text-emerald-700 border-emerald-200';
             case 'En cours':   return 'bg-amber-50 text-amber-700 border-amber-200';
             case 'Planifiée':  return 'bg-sky-50 text-sky-700 border-sky-200';
-            case 'Annulée':   return 'bg-slate-50 text-slate-500 border-slate-200';
+            case 'Reportée':   return 'bg-slate-50 text-slate-500 border-slate-200';
+            case 'Annulée':    return 'bg-slate-50 text-slate-500 border-slate-200';
             default:           return 'bg-slate-50 text-slate-600 border-slate-200';
           }
         },
@@ -668,6 +704,7 @@
             case 'Terminée':   return 'bg-emerald-500';
             case 'En cours':   return 'bg-amber-500';
             case 'Planifiée':  return 'bg-sky-500';
+            case 'Reportée':   return 'bg-slate-400';
             case 'Annulée':    return 'bg-slate-400';
             default:           return 'bg-slate-400';
           }
