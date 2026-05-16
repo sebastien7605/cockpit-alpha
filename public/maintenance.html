@@ -410,8 +410,9 @@
         filterKpi: null,
         selected: null,
 
-        // "Aujourd'hui démo" : date max des interventions (pas new Date() réel)
-        // pour que les fenêtres 30j/90j/180j soient toujours peuplées
+        // "Aujourd'hui démo" : date max des interventions Terminée + En cours
+        // (on exclut les Planifiée qui sont du préventif futur, sinon todayDemo
+        // est tiré loin en avant et fausse les calculs "Ouvert depuis X jours")
         todayDemo: null,
 
         async load() {
@@ -425,9 +426,28 @@
 
             let list = data.interventions || [];
 
-            // Date "aujourd'hui démo" = max des dates d'intervention
-            const dates = list.map(i => i.date ? new Date(i.date).getTime() : 0).filter(t => t > 0);
-            this.todayDemo = dates.length ? new Date(Math.max(...dates)) : new Date();
+            // === Fix bug a) — Normalisation Duree_min vs duree_h ===
+            // Le backend peut renvoyer duree_h (heures décimales) OU duree_min (minutes).
+            // Détection par amplitude : si une seule valeur > 50, c'est forcément des minutes
+            // (aucune intervention de maintenance ne dure 50 heures).
+            const dureesBrutes = list.map(i => i.duree_h).filter(v => v !== null && v !== undefined && v > 0);
+            const enMinutes = dureesBrutes.some(v => v > 50);
+            if (enMinutes) {
+              list = list.map(i => ({
+                ...i,
+                duree_h: (i.duree_h !== null && i.duree_h !== undefined)
+                  ? Math.round((i.duree_h / 60) * 10) / 10
+                  : null
+              }));
+            }
+
+            // === Fix bug b) — todayDemo = max des dates Terminée + En cours ===
+            // Les Planifiée représentent du préventif futur, pas "aujourd'hui démo".
+            const datesReelles = list
+              .filter(i => i.statut === 'Terminée' || i.statut === 'En cours')
+              .map(i => i.date ? new Date(i.date).getTime() : 0)
+              .filter(t => t > 0);
+            this.todayDemo = datesReelles.length ? new Date(Math.max(...datesReelles)) : new Date();
 
             // Enrichissement : signaux de tension par intervention
             list = list.map(i => ({ ...i, _signals: [], _score: 0 }));
@@ -442,10 +462,12 @@
           }
         },
 
-        // === SIGNAUX DE TENSION — 4 critères multi-axes ===
+        // === SIGNAUX DE TENSION — 4 critères multi-axes (durcis Phase 4) ===
         // 1. Récurrence machine : >=3 interv. sur la même machine en 90j
         // 2. Récurrence type_panne : >=2 même type_panne sur même machine en 180j
-        // 3. Première intervention sur cette machine pour cet agent (ET machine a >=2 interv. antérieures)
+        // 3. Première intervention sur cette machine pour cet agent
+        //    SEULEMENT si machine a >=5 interv. antérieures ET ce n'est pas une Préventive
+        //    (rotation préventive normale ≠ signal)
         // 4. En cours > 14 jours
         computeSignals(list) {
           const today = this.todayDemo;
@@ -497,14 +519,15 @@
               }
             }
 
-            // Critère 3 : 1ʳᵉ intervention sur cette machine pour cet agent
-            //            (ET la machine a >=2 interventions antérieures)
-            if (i.agent_rec_id) {
+            // Critère 3 (DURCI Phase 4) :
+            //  - machine doit avoir >=5 interv. antérieures (au lieu de >=2)
+            //  - exclure les Préventives (rotation normale ≠ symptôme)
+            if (i.agent_rec_id && i.type !== 'Préventive') {
               const anteriores = machineHistory.filter(h =>
                 new Date(h.date) < dateI
               );
               const memeAgentAvant = anteriores.some(h => h.agent_rec_id === i.agent_rec_id);
-              if (anteriores.length >= 2 && !memeAgentAvant) {
+              if (anteriores.length >= 5 && !memeAgentAvant) {
                 signals.push('Première intervention sur cette machine');
                 score += 3;
               }
