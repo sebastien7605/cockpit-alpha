@@ -80,15 +80,15 @@
       <button @click="load()" class="mt-3 text-xs px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700">Réessayer</button>
     </div>
 
-    <!-- CONTENU PRINCIPAL — Étape 1 : validation lecture -->
+    <!-- CONTENU PRINCIPAL -->
     <div x-show="!loading && !error" x-cloak>
 
-      <!-- BANDEAU ÉTAPE 1 (à supprimer en Étape 2) -->
+      <!-- BANDEAU ÉTAPE 1.5 -->
       <div class="bg-sky-50 border border-sky-200 rounded-lg px-4 py-3 mb-6 flex items-center gap-3">
         <span class="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"></span>
         <p class="text-xs text-sky-900">
-          <span class="font-semibold">Étape 1 — Validation lecture API.</span>
-          La frise temporelle, le toggle Par agent / Par machine, le drawer cellule et le bandeau À surveiller arrivent aux étapes suivantes.
+          <span class="font-semibold">Étape 1.5 — Diagnostic seeding.</span>
+          On lit la qualité narrative du seeding (densité de friction par semaine, commentaires métier, présence des records-clés) avant de construire la frise temporelle.
         </p>
       </div>
 
@@ -171,6 +171,130 @@
         </div>
       </div>
 
+      <!-- =============================================================== -->
+      <!-- ÉTAPE 1.5 — DIAGNOSTIC SEEDING (3 panneaux)                     -->
+      <!-- =============================================================== -->
+
+      <!-- 1.5.A — Répartition par semaine ISO -->
+      <div class="mb-6">
+        <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Répartition par semaine ISO — densité de friction</p>
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th class="text-left px-4 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Semaine</th>
+                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Prévu</th>
+                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Réalisé</th>
+                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Absent</th>
+                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Modifié</th>
+                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Friction</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="w in parSemaine" :key="w.semaine">
+                <tr class="border-t border-slate-100" :class="w.semaine === 22 ? 'bg-sky-50' : ''">
+                  <td class="px-4 py-2">
+                    <span class="font-semibold text-slate-900" x-text="'S' + w.semaine"></span>
+                    <span class="text-xs text-slate-400 ml-2">lun. <span x-text="w.mondayDate"></span></span>
+                    <span x-show="w.semaine === 22" class="ml-2 text-xs text-sky-700 font-medium">· Cette semaine</span>
+                  </td>
+                  <td class="text-right px-3 py-2 text-slate-700" x-text="w['Prévu']"></td>
+                  <td class="text-right px-3 py-2 text-slate-700" x-text="w['Réalisé']"></td>
+                  <td class="text-right px-3 py-2"
+                      :class="w['Absent'] === 0 ? 'text-slate-300' : 'text-slate-700 font-medium'"
+                      x-text="w['Absent']"></td>
+                  <td class="text-right px-3 py-2"
+                      :class="w['Modifié'] === 0 ? 'text-slate-300' : 'text-violet-700 font-medium'"
+                      x-text="w['Modifié']"></td>
+                  <td class="text-right px-3 py-2 text-xs">
+                    <span x-show="(w['Absent'] + w['Modifié']) === 0" class="text-amber-700 font-medium">⚠ aucune</span>
+                    <span x-show="(w['Absent'] + w['Modifié']) > 0" class="text-emerald-700"
+                          x-text="(w['Absent'] + w['Modifié']) + ' record' + ((w['Absent'] + w['Modifié']) > 1 ? 's' : '')"></span>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          La colonne <span class="font-medium">Friction</span> agrège Absent + Modifié. Une semaine à 0 (en ambre) sera visuellement plate dans la frise.
+        </p>
+      </div>
+
+      <!-- 1.5.B — Densité narrative -->
+      <div class="mb-6">
+        <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Densité narrative — commentaires métier</p>
+        <div class="bg-white border border-slate-200 rounded-xl p-5">
+          <div class="flex items-baseline gap-3 mb-4">
+            <span class="text-3xl font-semibold"
+                  :class="densiteNarrative.pct >= 50 ? 'text-emerald-600' : (densiteNarrative.pct >= 30 ? 'text-amber-600' : 'text-red-600')"
+                  x-text="densiteNarrative.total"></span>
+            <span class="text-sm text-slate-500" x-text="'/ ' + plannings.length + ' records avec commentaire métier (' + densiteNarrative.pct + '%)'"></span>
+          </div>
+          <div class="space-y-3">
+            <template x-for="stat in densiteNarrative.parStatut" :key="stat.label">
+              <div class="flex items-center gap-3 text-sm">
+                <span class="w-24 text-slate-500" x-text="stat.label"></span>
+                <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full transition-all"
+                       :class="stat.pct >= 50 ? 'bg-emerald-500' : (stat.pct >= 30 ? 'bg-amber-500' : 'bg-red-500')"
+                       :style="'width: ' + stat.pct + '%'"></div>
+                </div>
+                <span class="text-xs text-slate-500 w-32 text-right" x-text="stat.avec + ' / ' + stat.total + ' (' + stat.pct + '%)'"></span>
+              </div>
+            </template>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-100 text-xs"
+               :class="densiteNarrative.pct >= 50 ? 'text-emerald-700' : (densiteNarrative.pct >= 30 ? 'text-amber-700' : 'text-red-700')">
+            <span x-show="densiteNarrative.pct >= 50">✓ Matériau narratif suffisant pour drawer + IA Phase 4</span>
+            <span x-show="densiteNarrative.pct >= 30 && densiteNarrative.pct < 50">⚠ Matériau juste — drawer fonctionnel mais IA Phase 4 risque pauvreté</span>
+            <span x-show="densiteNarrative.pct < 30">✗ Matériau insuffisant — enrichir seeding Airtable avant Étape 5</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1.5.C — Check records-clés du brief -->
+      <div class="mb-6">
+        <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Records-clés brief — vérification présence</p>
+        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+          <template x-for="item in checkRecordsCles" :key="item.id">
+            <div class="flex items-start gap-3 px-4 py-3 border-t border-slate-100 first:border-t-0">
+              <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold mt-0.5"
+                    :class="item.found ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'"
+                    x-text="item.found ? '✓' : '✗'"></span>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm font-medium text-slate-900" x-text="item.label"></div>
+                <div class="text-xs text-slate-500 font-mono mt-0.5" x-text="item.id"></div>
+                <div x-show="item.found" class="text-xs text-slate-600 mt-1.5">
+                  <span class="font-medium" x-text="item.found ? ('S' + getISOWeek(item.found.date)) : ''"></span>
+                  <span class="text-slate-400"> · </span>
+                  <span x-text="item.found ? item.found.date : ''"></span>
+                  <span class="text-slate-400"> · </span>
+                  <span x-text="item.found ? (item.found.creneau || 'sans créneau') : ''"></span>
+                  <span class="text-slate-400"> · </span>
+                  <span class="font-medium" x-text="item.found ? item.found.statut : ''"></span>
+                  <span class="text-slate-400"> · </span>
+                  <span x-text="item.found ? (item.found.agent_nom || '—') : ''"></span>
+                  <span x-show="item.found && item.found.machine_nom" class="text-slate-400"> sur </span>
+                  <span x-show="item.found && item.found.machine_nom" x-text="item.found ? item.found.machine_nom : ''"></span>
+                </div>
+                <div x-show="item.found && item.found.commentaire_metier && item.found.commentaire_metier.trim() !== ''"
+                     class="text-xs text-slate-700 italic mt-1 pl-2 border-l-2 border-slate-200"
+                     x-text="item.found ? ('« ' + item.found.commentaire_metier + ' »') : ''"></div>
+                <div x-show="!item.found" class="text-xs text-red-700 mt-1.5">Absent du payload reçu — à enrichir dans Airtable avant Étape 2.</div>
+              </div>
+            </div>
+          </template>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">
+          5 records sont annoncés dans le brief comme structurants pour la démo (frictions S22 + collision LAMBERT 05/06 S23).
+        </p>
+      </div>
+
+      <!-- =============================================================== -->
+      <!-- FIN ÉTAPE 1.5                                                    -->
+      <!-- =============================================================== -->
+
       <!-- DEBUG : DUMP 3 PREMIERS RECORDS -->
       <div class="mb-6">
         <div class="flex items-center justify-between mb-2">
@@ -225,6 +349,8 @@
           }
         },
 
+        // === UTILITAIRES ===
+
         uniqueValues(field) {
           const counts = {};
           this.plannings.forEach(p => {
@@ -242,6 +368,30 @@
           if (value === null) return this.plannings.filter(p => p.creneau === null || p.creneau === undefined || p.creneau === '').length;
           return this.plannings.filter(p => p.creneau === value).length;
         },
+
+        // ISO 8601 week number : algorithme standard (ajustement au jeudi)
+        getISOWeek(dateInput) {
+          if (!dateInput) return null;
+          const date = new Date(dateInput);
+          if (isNaN(date)) return null;
+          date.setHours(0, 0, 0, 0);
+          date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
+          const week1 = new Date(date.getFullYear(), 0, 4);
+          return 1 + Math.round(((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+        },
+
+        // Lundi de la semaine ISO contenant la date passée
+        getMondayLabel(dateInput) {
+          const d = new Date(dateInput);
+          if (isNaN(d)) return '—';
+          const day = d.getDay();
+          const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+          const monday = new Date(d);
+          monday.setDate(diff);
+          return monday.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+        },
+
+        // === STATUTS / CRÉNEAUX (Étape 1) ===
 
         get statutsAffichables() {
           const total = this.plannings.length || 1;
@@ -272,8 +422,8 @@
         get creneauxAffichables() {
           const total = this.plannings.length || 1;
           const ref = [
-            { label: 'Matin',       dot: 'bg-amber-500', hint: 'créneau matin', value: 'Matin' },
-            { label: 'Après-midi',  dot: 'bg-orange-500', hint: 'créneau après-midi', value: 'Après-midi' },
+            { label: 'Matin',       dot: 'bg-amber-500',  hint: 'créneau matin',         value: 'Matin' },
+            { label: 'Après-midi',  dot: 'bg-orange-500', hint: 'créneau après-midi',    value: 'Après-midi' },
             { label: 'Sans créneau', dot: 'bg-slate-400', hint: 'null (absence, formation…)', value: null }
           ];
           return ref.map(c => {
@@ -299,6 +449,77 @@
           const d = new Date(iso);
           if (isNaN(d)) return iso;
           return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        },
+
+        // === ÉTAPE 1.5 : DIAGNOSTIC SEEDING ===
+
+        // 1.5.A — Répartition par semaine ISO
+        get parSemaine() {
+          const weeks = {};
+          const validStatuts = ['Prévu', 'Réalisé', 'Absent', 'Modifié'];
+
+          this.plannings.forEach(p => {
+            if (!p.date) return;
+            const w = this.getISOWeek(p.date);
+            if (w === null) return;
+
+            if (!weeks[w]) {
+              weeks[w] = {
+                semaine: w,
+                'Prévu': 0,
+                'Réalisé': 0,
+                'Absent': 0,
+                'Modifié': 0,
+                total: 0,
+                mondayDate: this.getMondayLabel(p.date)
+              };
+            }
+            if (validStatuts.includes(p.statut)) {
+              weeks[w][p.statut]++;
+              weeks[w].total++;
+            }
+          });
+
+          return Object.values(weeks).sort((a, b) => a.semaine - b.semaine);
+        },
+
+        // 1.5.B — Densité narrative (commentaires métier)
+        get densiteNarrative() {
+          const total = this.plannings.length || 1;
+          const hasComment = (p) => p.commentaire_metier && p.commentaire_metier.trim() !== '';
+          const avecCommentaire = this.plannings.filter(hasComment);
+
+          const parStatut = ['Prévu', 'Réalisé', 'Absent', 'Modifié'].map(s => {
+            const all = this.plannings.filter(p => p.statut === s);
+            const avec = all.filter(hasComment);
+            return {
+              label: s,
+              total: all.length,
+              avec: avec.length,
+              pct: all.length ? Math.round(avec.length / all.length * 100) : 0
+            };
+          });
+
+          return {
+            total: avecCommentaire.length,
+            pct: Math.round(avecCommentaire.length / total * 100),
+            parStatut
+          };
+        },
+
+        // 1.5.C — Check des 5 records-clés du brief
+        get checkRecordsCles() {
+          const cibles = [
+            { id: 'recgh5LptLWdKfhZZ', label: 'Friction présente S22 — #1' },
+            { id: 'recwT1k4203lcCxTj', label: 'Friction présente S22 — #2' },
+            { id: 'recmvTBXloGpLcZXB', label: 'Friction présente S22 — #3' },
+            { id: 'rec21xRpFtr8hoomI', label: 'Collision S23 LAMBERT 05/06 — Maintenance préventive (Prévu)' },
+            { id: 'recY8NSUtOV4pulHO', label: 'Collision S23 LAMBERT 05/06 — Formation B1V (Absent)' }
+          ];
+          return cibles.map(c => ({
+            ...c,
+            found: this.plannings.find(p => p.rec_id === c.id) || null
+          }));
         }
       };
     }
