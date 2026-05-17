@@ -47,27 +47,27 @@
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen antialiased">
 
-  <!-- HEADER -->
+  <!-- HEADER (responsive V1.2) -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded bg-slate-900 flex items-center justify-center">
+    <div class="max-w-7xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
+        <div class="w-8 h-8 rounded bg-slate-900 flex items-center justify-center flex-shrink-0">
           <span class="text-white text-xs font-bold tracking-tight">CA</span>
         </div>
-        <div>
-          <h1 class="text-sm font-semibold text-slate-900 leading-tight">Cockpit Alpha</h1>
-          <p class="text-xs text-slate-500 leading-tight">Société Alpha · pilotage opérationnel</p>
+        <div class="min-w-0">
+          <h1 class="text-sm font-semibold text-slate-900 leading-tight truncate">Cockpit Alpha</h1>
+          <p class="text-xs text-slate-500 leading-tight truncate hidden md:block">Société Alpha · pilotage opérationnel</p>
         </div>
       </div>
-      <nav class="flex gap-1 text-sm">
-  <a href="/index.html"
-     class="px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-100 transition">Agents</a>
-  <a href="/machines.html"
-     class="px-3 py-1.5 rounded-md bg-slate-900 text-white">Machines</a>
-  <a href="/maintenance.html"
-     class="px-3 py-1.5 rounded-md text-slate-600 hover:bg-slate-100 transition">Maintenance</a>
-  <span class="px-3 py-1.5 rounded-md text-slate-300 cursor-not-allowed">Planning</span>
-</nav>
+      <nav class="flex gap-0.5 md:gap-1 text-xs md:text-sm flex-shrink-0">
+        <a href="/index.html"
+           class="px-2 md:px-3 py-1 md:py-1.5 rounded-md text-slate-600 hover:bg-slate-100 transition">Agents</a>
+        <a href="/machines.html"
+           class="px-2 md:px-3 py-1 md:py-1.5 rounded-md bg-slate-900 text-white">Machines</a>
+        <a href="/maintenance.html"
+           class="px-2 md:px-3 py-1 md:py-1.5 rounded-md text-slate-600 hover:bg-slate-100 transition">Maintenance</a>
+        <span class="px-2 md:px-3 py-1 md:py-1.5 rounded-md text-slate-300 cursor-not-allowed">Planning</span>
+      </nav>
     </div>
   </header>
 
@@ -168,7 +168,7 @@
 
       <!-- ZONE À SURVEILLER (top 3 critiques) -->
       <div x-show="aSurveiller.length > 0" class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-5 mb-6 text-white">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div>
             <p class="text-xs uppercase tracking-wider text-slate-400 font-medium">Lecture du parc — points d'attention</p>
             <h3 class="text-base font-semibold mt-0.5">À surveiller cette semaine</h3>
@@ -226,9 +226,8 @@
            class="mb-6 bg-white rounded-xl border-l-4 border-l-slate-900 border-y border-r border-slate-200 shadow-md overflow-hidden">
 
         <!-- Header bloc diagnostic avec signal "génération" -->
-        <div class="px-8 pt-7 pb-5 border-b border-slate-100 flex items-center justify-between">
+        <div class="px-4 md:px-8 pt-5 md:pt-7 pb-4 md:pb-5 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
           <div class="flex items-center gap-3">
-            <!-- Signal "thinking" pendant 1.5s puis pastille verte fixe -->
             <div class="flex items-center gap-1" x-show="diagThinking">
               <span class="diag-thinking-dot w-1.5 h-1.5 rounded-full bg-slate-400"></span>
               <span class="diag-thinking-dot w-1.5 h-1.5 rounded-full bg-slate-400"></span>
@@ -244,15 +243,15 @@
         </div>
 
         <!-- Verdict en grand, comme une citation -->
-        <div class="px-8 py-8 diag-fade-up" x-show="!diagThinking">
-          <p class="text-xl md:text-2xl font-light text-slate-900 leading-relaxed" x-html="formatVerdict(diagnostic.diagnostic.resume)"></p>
+        <div class="px-4 md:px-8 py-6 md:py-8 diag-fade-up" x-show="!diagThinking">
+          <p class="text-lg md:text-2xl font-light text-slate-900 leading-relaxed" x-html="formatVerdict(diagnostic.diagnostic.resume)"></p>
         </div>
 
         <!-- Séparateur fin -->
         <div class="border-t border-slate-100" x-show="!diagThinking"></div>
 
         <!-- 2 colonnes : Alertes / Maintenances -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 px-8 py-7 diag-fade-up" x-show="!diagThinking" style="animation-delay: 100ms;">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 px-4 md:px-8 py-5 md:py-7 diag-fade-up" x-show="!diagThinking" style="animation-delay: 100ms;">
 
           <!-- Alertes -->
           <div>
@@ -285,7 +284,7 @@
         </div>
 
         <!-- Lecture par secteur (l'analyse) -->
-        <div class="border-t border-slate-100 px-8 py-7 bg-slate-50/50 diag-fade-up" x-show="!diagThinking" style="animation-delay: 200ms;">
+        <div class="border-t border-slate-100 px-4 md:px-8 py-5 md:py-7 bg-slate-50/50 diag-fade-up" x-show="!diagThinking" style="animation-delay: 200ms;">
           <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-5">Lecture par secteur</p>
           <div class="space-y-4">
             <template x-for="(item, i) in diagnostic.diagnostic.patterns_par_secteur" :key="i">
@@ -391,11 +390,10 @@
       </p>
     </div>
 
-    <!-- DRAWER LATÉRAL DÉTAIL MACHINE -->
+    <!-- DRAWER LATÉRAL DÉTAIL MACHINE (responsive V1.2) -->
     <div x-show="selected" x-cloak
          @keydown.escape.window="closeDrawer()"
          class="fixed inset-0 z-50">
-      <!-- backdrop -->
       <div x-show="selected"
            x-transition:enter="transition ease-out duration-200"
            x-transition:enter-start="opacity-0"
@@ -406,7 +404,6 @@
            @click="closeDrawer()"
            class="absolute inset-0 bg-slate-900/40"></div>
 
-      <!-- drawer -->
       <div x-show="selected"
            x-transition:enter="transition ease-out duration-250"
            x-transition:enter-start="translate-x-full"
@@ -414,9 +411,9 @@
            x-transition:leave="transition ease-in duration-200"
            x-transition:leave-start="translate-x-0"
            x-transition:leave-end="translate-x-full"
-           class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl overflow-y-auto">
+           class="absolute right-0 top-0 h-full w-[92%] max-w-md lg:max-w-2xl bg-white shadow-xl overflow-y-auto">
         <template x-if="selected">
-          <div class="p-6">
+          <div class="p-4 md:p-6">
             <div class="flex items-start justify-between mb-6">
               <div class="flex-1">
                 <div class="flex items-center gap-2 mb-2">
@@ -511,7 +508,6 @@
         filterLoc: null,
         selected: null,
 
-        // === Phase 5 V4 : Diagnostic IA ===
         diagnostic: null,
         diagnosticLoading: false,
         diagnosticError: null,
@@ -529,7 +525,6 @@
             const data = await res.json();
             if (!data.success) throw new Error('Réponse API invalide');
             this.diagnostic = data;
-            // Signal "génération" pendant 1.2s avant de révéler le contenu
             this.diagThinking = true;
             setTimeout(() => { this.diagThinking = false; }, 1200);
           } catch (e) {
@@ -539,17 +534,14 @@
           }
         },
 
-        // V4 : met en accent les chiffres (un, deux, trois, etc.) et les noms d'ateliers dans le verdict
         formatVerdict(text) {
           if (!text) return '';
           let html = this.escapeHtml(text);
-          // Uniquement les chiffres en lettres (associés à un comptage de risque)
           const numberWords = ['une','deux','trois','quatre','cinq','six','sept','huit','neuf','dix'];
           numberWords.forEach(n => {
             const re = new RegExp('\\b(' + n + ')\\b', 'gi');
             html = html.replace(re, '<span class="diag-accent">$1</span>');
           });
-          // Noms d'ateliers et zones (incluant lignes de production)
           ['Atelier 1','Atelier 2','Atelier 3','Quai expédition','Stock','Ligne A1','Ligne A2','Ligne B1','Ligne B2'].forEach(zone => {
             const re = new RegExp('(' + zone.replace(/ /g, '\\s+') + ')', 'g');
             html = html.replace(re, '<span class="diag-accent-slate">$1</span>');
@@ -593,7 +585,6 @@
         },
 
         get aSurveiller() {
-          // priorité : Hors service > Alerte > Maint dans 14 jours
           const now = new Date();
           const scored = this.machines.map(m => {
             let score = 0;
