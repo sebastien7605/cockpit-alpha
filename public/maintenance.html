@@ -280,7 +280,7 @@
       </p>
     </div>
 
-    <!-- DRAWER LATÉRAL DÉTAIL INTERVENTION -->
+    <!-- DRAWER LATÉRAL DÉTAIL INTERVENTION (élargi sur grand écran — C3) -->
     <div x-show="selected" x-cloak
          @keydown.escape.window="closeDrawer()"
          class="fixed inset-0 z-50">
@@ -296,7 +296,7 @@
            @click="closeDrawer()"
            class="absolute inset-0 bg-slate-900/40"></div>
 
-      <!-- drawer -->
+      <!-- drawer (max-w-md mobile, max-w-2xl écran large) -->
       <div x-show="selected"
            x-transition:enter="transition ease-out duration-250"
            x-transition:enter-start="translate-x-full"
@@ -304,7 +304,7 @@
            x-transition:leave="transition ease-in duration-200"
            x-transition:leave-start="translate-x-0"
            x-transition:leave-end="translate-x-full"
-           class="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl overflow-y-auto">
+           class="absolute right-0 top-0 h-full w-full max-w-md lg:max-w-2xl bg-white shadow-xl overflow-y-auto">
         <template x-if="selected">
           <div class="p-6">
 
@@ -330,7 +330,7 @@
               </button>
             </div>
 
-            <!-- Signaux de tension (préfigure Phase 4) -->
+            <!-- Signaux de tension -->
             <div x-show="selected._signals.length > 0" class="mb-6">
               <h4 class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Points d'attention</h4>
               <div class="bg-slate-50 rounded-lg p-4 space-y-2">
@@ -381,13 +381,13 @@
               </div>
             </div>
 
-            <!-- Détails complémentaires -->
+            <!-- Détails complémentaires (C1 : Type de panne en x-show) -->
             <div>
               <h4 class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Détails</h4>
               <dl class="space-y-2 text-sm">
-                <div class="flex justify-between gap-4">
+                <div class="flex justify-between gap-4" x-show="selected.type_panne">
                   <dt class="text-slate-500">Type de panne</dt>
-                  <dd class="text-slate-900 font-medium text-right" x-text="selected.type_panne || '—'"></dd>
+                  <dd class="text-slate-900 font-medium text-right" x-text="selected.type_panne"></dd>
                 </div>
                 <div class="flex justify-between gap-4">
                   <dt class="text-slate-500">Statut</dt>
@@ -409,11 +409,9 @@
               <button @click="loadPourquoi(selected.rec_id)"
                       :disabled="pourquoiThinking"
                       class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-3 transition disabled:bg-slate-400 disabled:cursor-wait">
-                <!-- Icône ampoule (idle) -->
                 <svg x-show="!pourquoiThinking" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                 </svg>
-                <!-- Spinner (thinking) -->
                 <svg x-show="pourquoiThinking" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
@@ -423,7 +421,7 @@
                 <span x-show="!pourquoiThinking && pourquoi">Relancer l'analyse</span>
               </button>
 
-              <!-- ZONE THINKING : 3 points pulsants pendant 1.2s minimum (D2) -->
+              <!-- ZONE THINKING -->
               <div x-show="pourquoiThinking" x-cloak
                    x-transition:enter="transition ease-out duration-200"
                    x-transition:enter-start="opacity-0"
@@ -450,22 +448,19 @@
               <!-- ZONE POURQUOI : 3 blocs révélés en cascade staggered (D8) -->
               <div x-show="pourquoi && !pourquoiThinking" x-cloak class="mt-6 space-y-4">
 
-                <!-- BLOC 1 — VERDICT (fond blanc, bordure gauche épaisse slate-900) -->
+                <!-- BLOC 1 — VERDICT (C2-A : date masquée) -->
                 <div class="diag-fade-up bg-white rounded-lg border-l-4 border-l-slate-900 border-y border-r border-slate-200 shadow-sm overflow-hidden"
                      style="animation-delay: 0ms;">
                   <div class="px-5 pt-4 pb-2 flex items-center gap-2 border-b border-slate-100">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Verdict</p>
-                    <span class="ml-auto text-xs text-slate-400"
-                          x-show="pourquoi"
-                          x-text="'Lecture du ' + new Date(pourquoi.generated_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })"></span>
                   </div>
                   <div class="px-5 py-5">
                     <p class="text-base text-slate-900 leading-relaxed" x-text="pourquoi.pourquoi.verdict"></p>
                   </div>
                 </div>
 
-                <!-- BLOC 2 — FIL TEMPOREL (timeline, masqué si vide — D3) -->
+                <!-- BLOC 2 — FIL TEMPOREL (D3) -->
                 <div x-show="pourquoi.pourquoi.fil_temporel && pourquoi.pourquoi.fil_temporel.length > 0"
                      class="diag-fade-up bg-slate-50 rounded-lg border border-slate-200 overflow-hidden"
                      style="animation-delay: 100ms;">
@@ -484,10 +479,10 @@
                   </div>
                 </div>
 
-                <!-- BLOC 3 — RECOMMANDATION : variation D4 (NA/NA/NA) ou cas standard -->
+                <!-- BLOC 3 — RECOMMANDATION -->
                 <div class="diag-fade-up" style="animation-delay: 200ms;">
 
-                  <!-- Cas NA/NA/NA : bloc vert lucide unique (D4) -->
+                  <!-- Cas NA/NA/NA (D4) -->
                   <div x-show="isRecommandationVide(pourquoi.pourquoi.recommandation)"
                        class="bg-emerald-50 rounded-lg border border-emerald-200 px-5 py-4">
                     <div class="flex items-center gap-2 mb-2">
@@ -499,7 +494,7 @@
                     </p>
                   </div>
 
-                  <!-- Cas standard : 3 sous-blocs cause / action / délai (ambre — D9) -->
+                  <!-- Cas standard (D9 ambre) -->
                   <div x-show="!isRecommandationVide(pourquoi.pourquoi.recommandation)" class="space-y-2">
                     <div class="px-1">
                       <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-2">Recommandation</p>
@@ -523,9 +518,7 @@
               </div>
 
             </div>
-            <!-- ============================================================= -->
-            <!-- === FIN ZONE POURQUOI                                         -->
-            <!-- ============================================================= -->
+            <!-- === FIN ZONE POURQUOI === -->
 
           </div>
         </template>
@@ -546,15 +539,12 @@
         selected: null,
 
         // === Phase 4 Étape 3 : état Pourquoi causal ===
-        pourquoi: null,           // payload API complet { success, cached, generated_at, intervention_id, pourquoi: {...} }
-        pourquoiThinking: false,  // true pendant 1.2s mini après clic (animation D2)
-        pourquoiError: null,      // string user-friendly à afficher ou null
-        pourquoiAbort: null,      // référence vers AbortController courant (pour abort propre)
-        pourquoiThinkingTimer: null, // référence vers setTimeout du thinking (pour clear)
+        pourquoi: null,
+        pourquoiThinking: false,
+        pourquoiError: null,
+        pourquoiAbort: null,
+        pourquoiThinkingTimer: null,
 
-        // "Aujourd'hui démo" : date max des interventions Terminée + En cours
-        // (on exclut les Planifiée qui sont du préventif futur, sinon todayDemo
-        // est tiré loin en avant et fausse les calculs "Ouvert depuis X jours")
         todayDemo: null,
 
         async load() {
@@ -568,7 +558,6 @@
 
             let list = data.interventions || [];
 
-            // === Fix bug a) — Normalisation Duree_min vs duree_h ===
             const dureesBrutes = list.map(i => i.duree_h).filter(v => v !== null && v !== undefined && v > 0);
             const enMinutes = dureesBrutes.some(v => v > 50);
             if (enMinutes) {
@@ -580,14 +569,12 @@
               }));
             }
 
-            // === Fix bug b) — todayDemo = max des dates Terminée + En cours ===
             const datesReelles = list
               .filter(i => i.statut === 'Terminée' || i.statut === 'En cours')
               .map(i => i.date ? new Date(i.date).getTime() : 0)
               .filter(t => t > 0);
             this.todayDemo = datesReelles.length ? new Date(Math.max(...datesReelles)) : new Date();
 
-            // Enrichissement : signaux de tension par intervention
             list = list.map(i => ({ ...i, _signals: [], _score: 0 }));
             list = this.computeSignals(list);
 
@@ -600,7 +587,6 @@
           }
         },
 
-        // === SIGNAUX DE TENSION — 4 critères multi-axes (durcis Phase 4) ===
         computeSignals(list) {
           const today = this.todayDemo;
           const day = 86400000;
@@ -626,7 +612,6 @@
             const dateI = new Date(i.date);
             const machineHistory = byMachine[i.machine_rec_id] || [];
 
-            // Critère 1 (DURCI Phase 4) : récurrence machine 90j hors Préventive + hors non-réalisées
             const recent90 = machineHistory.filter(h => {
               if (h.type === 'Préventive') return false;
               if (h.statut === 'Reportée' || h.statut === 'Annulée') return false;
@@ -638,7 +623,6 @@
               score += recent90.length * 2;
             }
 
-            // Critère 2 : récurrence type_panne 180j
             if (i.type_panne) {
               const samePanne = machineHistory.filter(h => {
                 if (!h.type_panne || h.type_panne !== i.type_panne) return false;
@@ -652,7 +636,6 @@
               }
             }
 
-            // Critère 3 (DURCI Phase 4) :
             if (i.agent_rec_id && i.type !== 'Préventive') {
               const anteriores = machineHistory.filter(h =>
                 new Date(h.date) < dateI
@@ -664,7 +647,6 @@
               }
             }
 
-            // Critère 4 : En cours > 14j
             if (i.statut === 'En cours') {
               const joursOuvert = Math.round((today - dateI) / day);
               if (joursOuvert > 14) {
@@ -677,7 +659,6 @@
           });
         },
 
-        // === KPIs ===
         get kpis() {
           if (!this.interventions.length || !this.todayDemo) {
             return { enCours: 0, terminees30j: 0, dureeMoy30j: 0, machinesSignal: 0 };
@@ -766,7 +747,6 @@
           this.filterKpi = (this.filterKpi === kpi) ? null : kpi;
         },
 
-        // === Drawer : reset complet du state Pourquoi à chaque ouverture / fermeture ===
         openDrawer(i) {
           this.resetPourquoi();
           this.selected = i;
@@ -776,7 +756,6 @@
           this.selected = null;
         },
 
-        // Reset propre du state Pourquoi (abort fetch en vol, clear timers, vide données)
         resetPourquoi() {
           if (this.pourquoiAbort) {
             try { this.pourquoiAbort.abort(); } catch (e) { /* no-op */ }
@@ -791,12 +770,9 @@
           this.pourquoiError = null;
         },
 
-        // === Appel API Pourquoi causal ===
-        // Pattern : thinking immédiat (1.2s min) + fetch parallèle + révélation après fin du thinking
         async loadPourquoi(recId) {
           if (!recId) return;
 
-          // Reset état précédent (mais conserve selected pour ne pas fermer le drawer)
           if (this.pourquoiAbort) {
             try { this.pourquoiAbort.abort(); } catch (e) { /* no-op */ }
           }
@@ -807,16 +783,13 @@
           this.pourquoiError = null;
           this.pourquoiThinking = true;
 
-          // AbortController + timeout 25s (D6)
           const controller = new AbortController();
           this.pourquoiAbort = controller;
           const timeoutId = setTimeout(() => controller.abort(), 25000);
 
-          // Garantie thinking 1.2s minimum (D2) : flag levé pour 1.2s même si réponse instantanée
           let thinkingMinDone = false;
           this.pourquoiThinkingTimer = setTimeout(() => {
             thinkingMinDone = true;
-            // Si la réponse est déjà arrivée, on coupe le thinking maintenant
             if (this.pourquoi || this.pourquoiError) {
               this.pourquoiThinking = false;
             }
@@ -843,24 +816,18 @@
               throw new Error('INVALID_RESPONSE');
             }
 
-            // Vérif minimale du contrat
             if (!data.pourquoi || typeof data.pourquoi.verdict !== 'string') {
               throw new Error('INVALID_RESPONSE');
             }
 
             this.pourquoi = data;
-            // Révélation conditionnée à la fin du thinking 1.2s
             if (thinkingMinDone) {
               this.pourquoiThinking = false;
             }
           } catch (err) {
             clearTimeout(timeoutId);
 
-            // Si abort par changement de drawer → on ne notifie pas l'utilisateur
-            // (le drawer n'affiche plus rien de toute façon)
             if (err.name === 'AbortError') {
-              // Distinction abort par timeout vs abort par reset drawer
-              // Si le drawer existe encore, c'est forcément un timeout (reset aurait nullé selected)
               if (this.selected) {
                 this.pourquoiError = 'L\'analyse prend trop de temps. Réessayer.';
                 if (thinkingMinDone) this.pourquoiThinking = false;
@@ -881,7 +848,6 @@
           }
         },
 
-        // Helper D4 : true si recommandation = NA/NA/NA strict
         isRecommandationVide(reco) {
           if (!reco) return false;
           return reco.cause_probable === 'NA'
@@ -889,7 +855,6 @@
               && reco.delai === 'NA';
         },
 
-        // === Helpers de format ===
         formatDate(iso) {
           if (!iso) return '—';
           const d = new Date(iso);
@@ -907,7 +872,6 @@
           return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
         },
 
-        // === Helpers de couleur ===
         typeBadgeClass(type) {
           switch (type) {
             case 'Préventive': return 'bg-slate-50 text-slate-700 border-slate-200';
