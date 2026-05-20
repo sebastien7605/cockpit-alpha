@@ -239,6 +239,9 @@
                   <div x-show="row.single.commentaireFlag" class="mt-1 text-xs text-slate-500 italic">
                     « <span x-text="row.single.commentaireExcerpt"></span> »
                   </div>
+                  <div x-show="row.secondaryHint" class="mt-1 text-[11px] text-slate-500 border-t border-slate-200/60 pt-1">
+                    <span class="text-slate-400">↳</span> <span x-text="row.secondaryHint"></span>
+                  </div>
                   <div x-show="multiRecordsLabel(row)" class="mt-1 text-[10px] text-slate-400 uppercase tracking-wider" :title="'Plusieurs records cette semaine — voir détail Étape 5'">
                     <span x-text="multiRecordsLabel(row)"></span> cette semaine
                   </div>
@@ -303,6 +306,9 @@
                   </div>
                   <div x-show="row.single.commentaireFlag" class="mt-2 text-xs text-slate-600 italic">
                     « <span x-text="row.single.commentaireFull"></span> »
+                  </div>
+                  <div x-show="row.secondaryHint" class="mt-2 text-xs text-slate-500 border-t border-slate-200/60 pt-2">
+                    <span class="text-slate-400">↳</span> <span x-text="row.secondaryHint"></span>
                   </div>
                   <div x-show="multiRecordsLabel(row)" class="mt-2 text-[10px] text-slate-400 uppercase tracking-wider">
                     <span x-text="multiRecordsLabel(row)"></span> cette semaine
@@ -765,6 +771,30 @@
               hasFriction, semaineStats
             };
           }
+
+          // Cas C-bis : friction asymétrique → basculer en single du friction
+          // (la doctrine veut que la friction remonte, pas qu'elle soit diluée en split)
+          const mIsFriction = this.isFrictionStatut(eM.statut);
+          const aIsFriction = this.isFrictionStatut(eA.statut);
+
+          if (mIsFriction && !aIsFriction) {
+            // Matin Modifié/Absent + Aprem Prévu/Réalisé
+            return {
+              agent, cellType: 'single', single: eM,
+              hasFriction: true, semaineStats,
+              secondaryHint: 'Aprem : ' + eA.statut + ' · ' + (eA.machine_nom || 'sans machine')
+            };
+          }
+          if (aIsFriction && !mIsFriction) {
+            // Aprem Modifié/Absent + Matin Prévu/Réalisé
+            return {
+              agent, cellType: 'single', single: eA,
+              hasFriction: true, semaineStats,
+              secondaryHint: 'Matin : ' + eM.statut + ' · ' + (eM.machine_nom || 'sans machine')
+            };
+          }
+
+          // Cas C standard : pas de friction asymétrique → split classique
           return {
             agent, cellType: 'split', matin: eM, aprem: eA,
             hasFriction, semaineStats
