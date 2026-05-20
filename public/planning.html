@@ -799,14 +799,15 @@
         extractCouvrePar(p) {
           if (!p || p.statut !== 'Modifié') return null;
 
-          // Cas idéal : lookup direct depuis Airtable (à exposer dans le payload n8n
-          // via le champ Agent_couvre_par_nom. Hypothèse à vérifier sur le payload réel.)
+          // Source de vérité : lookup direct depuis Airtable (champ Remplacement_nom)
+          // exposé par n8n Transform Records dans le payload. Convention Option A :
+          // l'agent du record est celui qui FAIT le travail, remplacement_nom est l'ABSENT.
+          if (p.remplacement_nom) return p.remplacement_nom;
           if (p.remplace_agent_nom) return p.remplace_agent_nom;
           if (p.agent_couvre_par_nom) return p.agent_couvre_par_nom;
 
           // Fallback regex : pattern "[Prénom] assure/couvre/remplace"
-          // Ex : "Dupuy assure le poste" → capture "Dupuy"
-          // Ex : "Bertrand assure (Pontier qualifié)" → capture "Bertrand"
+          // À ne déclencher que si le lookup Airtable est absent du payload.
           const c = p.commentaire_metier || '';
           const m1 = c.match(/([A-ZÉÈÀÂÎÔÛÄËÏÖÜ][a-zéèàâîôûäëïöü]+)\s+(?:assure|couvre|remplace)/);
           if (m1) return m1[1];
