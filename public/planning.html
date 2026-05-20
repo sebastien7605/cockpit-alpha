@@ -36,6 +36,11 @@
       }
     }
 
+    /* Wrapper de ligne : display:contents permet aux enfants d'intégrer le grid parent */
+    .frise-row-wrapper {
+      display: contents;
+    }
+
     /* Cellules du header (semaines) — sticky top */
     .frise-th {
       position: sticky;
@@ -64,10 +69,6 @@
         min-height: 72px;
         padding: 0.5rem;
       }
-    }
-    /* Hover row : on remonte le z pour que ça reste lisible */
-    .frise-row:hover .frise-agent-cell {
-      background: rgb(248 250 252);
     }
 
     /* Coin haut-gauche (sticky double) */
@@ -99,7 +100,6 @@
         padding: 0.375rem;
       }
     }
-    .frise-cell:last-child { border-right: none; }
 
     /* Nuance temporelle — passé désaturé, présent encadré, futur plein */
     .week-past .frise-cell-content {
@@ -109,13 +109,13 @@
     .week-present {
       background: rgba(186 230 253 / 0.08);
     }
-    .week-present .frise-th {
+    .frise-th.week-present {
       background: rgb(224 242 254);
       color: rgb(7 89 133);
       font-weight: 600;
       box-shadow: inset 0 -2px 0 rgb(56 189 248);
     }
-    .week-present .frise-cell {
+    .frise-cell.week-present {
       box-shadow: inset 1px 0 0 rgb(186 230 253), inset -1px 0 0 rgb(186 230 253);
     }
     .week-future .frise-cell-content {
@@ -376,66 +376,94 @@
               </div>
             </template>
 
-            <!-- LIGNES AGENT -->
+            <!-- LIGNES AGENT — Boucle plate, 1 wrapper display:contents par ligne -->
             <template x-for="row in filteredFrise" :key="row.agent.rec_id">
-              <template x-for="cell in cellsForRow(row)" :key="row.agent.rec_id + '-' + cell.key">
-                <template x-if="cell.kind === 'agent'">
-                  <div class="frise-agent-cell frise-row">
-                    <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold" :class="avatarClass(row.agent.equipe)" x-text="initials(row.agent)"></div>
-                    <div class="min-w-0 flex-1">
-                      <div class="text-xs font-medium text-slate-900 truncate" x-text="(row.agent.prenom + ' ' + row.agent.nom).trim()"></div>
-                      <div class="text-[10px] text-slate-500 truncate" x-text="row.agent.equipe"></div>
-                    </div>
-                    <span x-show="row.hasFrictionTotal" class="flex-shrink-0 w-2 h-2 rounded-full bg-amber-500" :title="'Friction sur ' + row.frictionWeeks.join(', ')"></span>
+              <div class="frise-row-wrapper">
+
+                <!-- Colonne 1 : agent (sticky left) -->
+                <div class="frise-agent-cell">
+                  <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold"
+                       :class="avatarClass(row.agent.equipe)"
+                       x-text="initials(row.agent)"></div>
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-medium text-slate-900 truncate" x-text="(row.agent.prenom + ' ' + row.agent.nom).trim()"></div>
+                    <div class="text-[10px] text-slate-500 truncate" x-text="row.agent.equipe"></div>
                   </div>
-                </template>
-                <template x-if="cell.kind === 'week'">
-                  <div class="frise-cell" :class="cell.weekClass">
+                  <span x-show="row.hasFrictionTotal"
+                        class="flex-shrink-0 w-2 h-2 rounded-full bg-amber-500"
+                        :title="'Friction sur ' + row.frictionWeeks.join(', ')"></span>
+                </div>
+
+                <!-- Colonnes 2-9 : 8 cellules semaines -->
+                <template x-for="w in SEMAINES_RANGE" :key="row.agent.rec_id + '-w' + w">
+                  <div class="frise-cell" :class="weekTemporalityClass(w)">
 
                     <!-- Cellule vide -->
-                    <div x-show="cell.cellType === 'empty'" class="cell-empty">—</div>
+                    <div x-show="row.weeks[w].cellType === 'empty'" class="cell-empty">—</div>
 
                     <!-- Cellule single -->
-                    <div x-show="cell.cellType === 'single'" class="cell-content frise-cell-content" :class="cellClass(cell.single)">
+                    <div x-show="row.weeks[w].cellType === 'single'"
+                         class="cell-content frise-cell-content"
+                         :class="cellClass(row.weeks[w].single)">
                       <div class="flex items-center justify-between gap-1">
-                        <span class="text-[10px] font-semibold uppercase tracking-wider truncate" x-text="cell.single ? cell.single.statut : ''"></span>
-                        <span x-show="cell.single && cell.single.motif" class="text-xs leading-none flex-shrink-0" x-text="motifPicto(cell.single ? cell.single.motif : null)"></span>
+                        <span class="text-[10px] font-semibold uppercase tracking-wider truncate"
+                              x-text="row.weeks[w].single ? row.weeks[w].single.statut : ''"></span>
+                        <span x-show="row.weeks[w].single && row.weeks[w].single.motif"
+                              class="text-xs leading-none flex-shrink-0"
+                              x-text="motifPicto(row.weeks[w].single ? row.weeks[w].single.motif : null)"></span>
                       </div>
-                      <div class="text-[11px] font-medium truncate" x-text="cellLabel(cell.single)"></div>
-                      <div x-show="cell.single && cell.single.couvrePar" class="mt-0.5">
-                        <span class="badge-modifie" x-text="'↺ ' + (cell.single ? cell.single.couvrePar : '')"></span>
+                      <div class="text-[11px] font-medium truncate"
+                           x-text="cellLabel(row.weeks[w].single)"></div>
+                      <div x-show="row.weeks[w].single && row.weeks[w].single.couvrePar" class="mt-0.5">
+                        <span class="badge-modifie"
+                              x-text="'↺ ' + (row.weeks[w].single ? row.weeks[w].single.couvrePar : '')"></span>
                       </div>
-                      <div x-show="cell.secondaryHint" class="text-[9px] text-slate-500 italic truncate mt-auto" x-text="cell.secondaryHint"></div>
-                      <div x-show="cell.multiHint" class="text-[9px] text-slate-400 uppercase tracking-wider mt-auto" x-text="cell.multiHint"></div>
+                      <div x-show="row.weeks[w].secondaryHint"
+                           class="text-[9px] text-slate-500 italic truncate mt-auto"
+                           x-text="row.weeks[w].secondaryHint"></div>
+                      <div x-show="row.weeks[w].multiHint"
+                           class="text-[9px] text-slate-400 uppercase tracking-wider mt-auto"
+                           x-text="row.weeks[w].multiHint"></div>
                     </div>
 
                     <!-- Cellule split -->
-                    <div x-show="cell.cellType === 'split'" class="flex flex-col gap-1 flex-1 min-h-0">
-                      <div class="cell-content cell-content-half frise-cell-content" :class="cellClass(cell.matin)">
+                    <div x-show="row.weeks[w].cellType === 'split'" class="flex flex-col gap-1 flex-1 min-h-0">
+                      <div class="cell-content cell-content-half frise-cell-content"
+                           :class="cellClass(row.weeks[w].matin)">
                         <div class="flex items-center justify-between gap-1">
                           <span class="text-[9px] font-mono text-slate-500 flex-shrink-0">M</span>
-                          <span class="text-[10px] font-medium truncate" x-text="cellLabel(cell.matin)"></span>
-                          <span x-show="cell.matin && cell.matin.motif" class="text-xs leading-none flex-shrink-0" x-text="motifPicto(cell.matin.motif)"></span>
+                          <span class="text-[10px] font-medium truncate"
+                                x-text="cellLabel(row.weeks[w].matin)"></span>
+                          <span x-show="row.weeks[w].matin && row.weeks[w].matin.motif"
+                                class="text-xs leading-none flex-shrink-0"
+                                x-text="motifPicto(row.weeks[w].matin.motif)"></span>
                         </div>
-                        <div x-show="cell.matin && cell.matin.couvrePar" class="-mt-0.5">
-                          <span class="badge-modifie" x-text="'↺ ' + cell.matin.couvrePar"></span>
+                        <div x-show="row.weeks[w].matin && row.weeks[w].matin.couvrePar" class="-mt-0.5">
+                          <span class="badge-modifie"
+                                x-text="'↺ ' + row.weeks[w].matin.couvrePar"></span>
                         </div>
                       </div>
-                      <div class="cell-content cell-content-half frise-cell-content" :class="cellClass(cell.aprem)">
+                      <div class="cell-content cell-content-half frise-cell-content"
+                           :class="cellClass(row.weeks[w].aprem)">
                         <div class="flex items-center justify-between gap-1">
                           <span class="text-[9px] font-mono text-slate-500 flex-shrink-0">A</span>
-                          <span class="text-[10px] font-medium truncate" x-text="cellLabel(cell.aprem)"></span>
-                          <span x-show="cell.aprem && cell.aprem.motif" class="text-xs leading-none flex-shrink-0" x-text="motifPicto(cell.aprem.motif)"></span>
+                          <span class="text-[10px] font-medium truncate"
+                                x-text="cellLabel(row.weeks[w].aprem)"></span>
+                          <span x-show="row.weeks[w].aprem && row.weeks[w].aprem.motif"
+                                class="text-xs leading-none flex-shrink-0"
+                                x-text="motifPicto(row.weeks[w].aprem.motif)"></span>
                         </div>
-                        <div x-show="cell.aprem && cell.aprem.couvrePar" class="-mt-0.5">
-                          <span class="badge-modifie" x-text="'↺ ' + cell.aprem.couvrePar"></span>
+                        <div x-show="row.weeks[w].aprem && row.weeks[w].aprem.couvrePar" class="-mt-0.5">
+                          <span class="badge-modifie"
+                                x-text="'↺ ' + row.weeks[w].aprem.couvrePar"></span>
                         </div>
                       </div>
                     </div>
 
                   </div>
                 </template>
-              </template>
+
+              </div>
             </template>
 
           </div>
@@ -726,9 +754,6 @@
           return [...new Set(this.agents.map(a => a.equipe).filter(Boolean))].sort();
         },
 
-        // === Header semaines (8 colonnes) ===
-        // Construit la liste des semaines avec leur date du lundi et la classe CSS
-        // de nuance temporelle (passé / présent / futur).
         get semaines() {
           return this.SEMAINES_RANGE.map(num => ({
             num,
@@ -737,9 +762,6 @@
           }));
         },
 
-        // === Matrice agent × semaine ===
-        // Index pré-calculé : byAgent[recId] → array de records, byAgentByWeek[recId][weekNum] → array.
-        // Évite de refiltrer N×8 fois dans le rendu Alpine.
         get byAgentByWeek() {
           const map = {};
           this.plannings.forEach(p => {
@@ -753,7 +775,6 @@
           return map;
         },
 
-        // === Construction frise — 1 ligne par agent, 8 cellules par ligne ===
         get frise() {
           if (!this.agents.length) return [];
           const index = this.byAgentByWeek;
@@ -783,7 +804,6 @@
             };
           });
 
-          // Tri : agents avec friction S22 en premier, puis autres frictions, puis alpha
           rows.sort((a, b) => {
             if (a.hasFrictionS22 !== b.hasFrictionS22) return a.hasFrictionS22 ? -1 : 1;
             if (a.hasFrictionTotal !== b.hasFrictionTotal) return a.hasFrictionTotal ? -1 : 1;
@@ -816,23 +836,6 @@
           });
         },
 
-        // Génère la liste plate [agent-cell, week-cell × 8] pour une ligne
-        // Compatible avec le rendu nested template Alpine (1 ligne du grid CSS).
-        cellsForRow(row) {
-          const result = [{ kind: 'agent', key: 'agent' }];
-          this.SEMAINES_RANGE.forEach(w => {
-            const cell = row.weeks[w];
-            result.push({
-              kind: 'week',
-              key: 'w' + w,
-              weekNum: w,
-              weekClass: this.weekTemporalityClass(w),
-              ...cell
-            });
-          });
-          return result;
-        },
-
         get friseStats() {
           const frictionTotal = this.frise.filter(r => r.hasFrictionTotal).length;
           const frictionS22 = this.frise.filter(r => r.hasFrictionS22).length;
@@ -843,10 +846,6 @@
           return this.frise.filter(r => !r.hasAnyRecord).length;
         },
 
-        // === Cellule semaine — règle de priorité métier ===
-        // Modifié > Absent > Prévu > Réalisé. Gère 3 cas : empty / single / split.
-        // Si friction asymétrique sur split (1 créneau friction + 1 routine), on bascule
-        // en single du record de friction + secondaryHint discret (doctrine Étape 2 v4).
         pickRecordByPriority(records) {
           if (!records || records.length === 0) return null;
           const priority = ['Modifié', 'Absent', 'Prévu', 'Réalisé'];
@@ -881,7 +880,6 @@
           const semaineStats = this.countByStatutInList(records);
           const multiHint = this.computeMultiHint(records);
 
-          // Cas sansCreneau seul (absence/formation plein jour)
           if (sansCreneauWinner && !matinWinner && !apremWinner) {
             const e = this.enrichRecord(sansCreneauWinner);
             return {
@@ -891,7 +889,6 @@
             };
           }
 
-          // Cas single créneau
           if (matinWinner && !apremWinner) {
             const e = this.enrichRecord(matinWinner);
             return {
@@ -909,7 +906,6 @@
             };
           }
 
-          // Cas deux créneaux
           const eM = this.enrichRecord(matinWinner);
           const eA = this.enrichRecord(apremWinner);
           const hasFriction = this.isFrictionStatut(eM.statut) || this.isFrictionStatut(eA.statut);
@@ -924,7 +920,6 @@
             };
           }
 
-          // Friction asymétrique → bascule single (doctrine Étape 2 v4)
           const mIsFriction = this.isFrictionStatut(eM.statut);
           const aIsFriction = this.isFrictionStatut(eA.statut);
 
@@ -943,7 +938,6 @@
             };
           }
 
-          // Split standard
           return {
             cellType: 'split', matin: eM, aprem: eA,
             hasFriction, semaineStats, multiHint
@@ -953,8 +947,6 @@
         computeMultiHint(records) {
           const total = records.length;
           if (total <= 2) return '';
-          // Plus de 2 records cette semaine : signaler le surplus
-          // (drawer Étape 5 permettra de voir le détail)
           return '+' + (total - 2);
         },
 
@@ -985,11 +977,9 @@
 
         extractCouvrePar(p) {
           if (!p || p.statut !== 'Modifié') return null;
-          // Convention Option A : lookup remplacement_nom est l'agent ABSENT
           if (p.remplacement_nom) return p.remplacement_nom;
           if (p.remplace_agent_nom) return p.remplace_agent_nom;
           if (p.agent_couvre_par_nom) return p.agent_couvre_par_nom;
-          // Fallback regex
           const c = p.commentaire_metier || '';
           const m1 = c.match(/([A-ZÉÈÀÂÎÔÛÄËÏÖÜ][a-zéèàâîôûäëïöü]+)\s+(?:assure|couvre|remplace)/);
           if (m1) return m1[1];
@@ -1027,16 +1017,13 @@
           return rec.statut;
         },
 
-        // === Nuance temporelle par semaine ===
         weekTemporalityClass(w) {
           if (w < this.SEMAINE_COURANTE) return 'week-past';
           if (w === this.SEMAINE_COURANTE) return 'week-present';
           return 'week-future';
         },
 
-        // Calcule la date du lundi de la semaine ISO donnée (année courante 2026)
         mondayLabelForWeek(weekNum) {
-          // Algorithme : ISO week 1 = semaine contenant le 4 janvier
           const jan4 = new Date(2026, 0, 4);
           const jan4Day = jan4.getDay() || 7;
           const week1Monday = new Date(jan4);
