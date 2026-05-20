@@ -798,9 +798,17 @@
 
         extractCouvrePar(p) {
           if (!p || p.statut !== 'Modifié') return null;
+
+          // Cas idéal : lookup direct depuis Airtable (à exposer dans le payload n8n
+          // via le champ Agent_couvre_par_nom. Hypothèse à vérifier sur le payload réel.)
           if (p.remplace_agent_nom) return p.remplace_agent_nom;
+          if (p.agent_couvre_par_nom) return p.agent_couvre_par_nom;
+
+          // Fallback regex : pattern "[Prénom] assure/couvre/remplace"
+          // Ex : "Dupuy assure le poste" → capture "Dupuy"
+          // Ex : "Bertrand assure (Pontier qualifié)" → capture "Bertrand"
           const c = p.commentaire_metier || '';
-          const m1 = c.match(/(?:couvre|remplace|assure)\s+(?:le poste\s+)?([A-ZÉÈÀÂÎÔÛÄËÏÖÜ][a-zéèàâîôûäëïöü]+(?:\s+[A-ZÉÈÀÂÎÔÛÄËÏÖÜ][a-zéèàâîôûäëïöü]+)?)/i);
+          const m1 = c.match(/([A-ZÉÈÀÂÎÔÛÄËÏÖÜ][a-zéèàâîôûäëïöü]+)\s+(?:assure|couvre|remplace)/);
           if (m1) return m1[1];
           return null;
         },
