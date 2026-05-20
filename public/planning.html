@@ -15,6 +15,47 @@
       0%, 100% { opacity: 1; }
       50% { opacity: .4; }
     }
+
+    /* === Frise Étape 2 === */
+    .frise-grid {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+    }
+    .frise-cell {
+      min-height: 64px;
+      max-width: 280px;
+    }
+    .frise-half {
+      min-height: 32px;
+    }
+    /* Bordure ambre fine pour signaler "cette semaine" sur le cadre principal */
+    .frise-current {
+      box-shadow: inset 0 0 0 2px rgb(56 189 248 / .55);
+    }
+    /* Cellule vide : pas de bordure marquée, juste hachuré léger pour signaler "rien sur S22" */
+    .frise-empty {
+      background-image: repeating-linear-gradient(45deg, rgb(248 250 252) 0 6px, rgb(241 245 249) 6px 12px);
+    }
+    /* Cellule Modifié : badge ↺ visible */
+    .badge-modifie {
+      background: rgb(245 243 255);
+      color: rgb(91 33 182);
+      border: 1px solid rgb(196 181 253);
+    }
+    /* === Bandeau IA placeholder (désactivé visuellement) === */
+    .ai-placeholder-input {
+      background: rgb(248 250 252);
+      color: rgb(148 163 184);
+      border: 1px dashed rgb(203 213 225);
+      cursor: not-allowed;
+    }
+    .ai-placeholder-chip {
+      background: rgb(241 245 249);
+      color: rgb(100 116 139);
+      border: 1px dashed rgb(203 213 225);
+      cursor: not-allowed;
+      opacity: .65;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen antialiased">
@@ -50,8 +91,8 @@
     <div class="flex items-end justify-between mb-6 flex-wrap gap-4">
       <div>
         <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Planning · Activité du parc</p>
-        <h2 class="text-3xl font-semibold text-slate-900 mt-1 tracking-tight">Cockpit temporel — 8 semaines</h2>
-        <p class="text-sm text-slate-500 mt-2">Affectations agents / machines · suivi des absences, remplacements et frictions</p>
+        <h2 class="text-3xl font-semibold text-slate-900 mt-1 tracking-tight">Cockpit temporel — semaine S22</h2>
+        <p class="text-sm text-slate-500 mt-2">Lecture Par agent · 25-29 mai 2026 · cette semaine</p>
       </div>
       <div class="flex items-center gap-2 text-xs text-slate-500">
         <span class="w-2 h-2 rounded-full bg-emerald-500 pulse-dot"></span>
@@ -83,231 +124,418 @@
     <!-- CONTENU PRINCIPAL -->
     <div x-show="!loading && !error" x-cloak>
 
-      <!-- BANDEAU ÉTAPE 1.5 -->
-      <div class="bg-sky-50 border border-sky-200 rounded-lg px-4 py-3 mb-6 flex items-center gap-3">
-        <span class="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0"></span>
-        <p class="text-xs text-sky-900">
-          <span class="font-semibold">Étape 1.5 — Diagnostic seeding.</span>
-          On lit la qualité narrative du seeding (densité de friction par semaine, commentaires métier, présence des records-clés) avant de construire la frise temporelle.
-        </p>
-      </div>
-
-      <!-- BLOC TOTAL + PLAGE DE DATES -->
+      <!-- ============================================================== -->
+      <!-- BANDEAU IA PLACEHOLDER GRISÉ (Phase 4 IA n°3a — réservation visuelle) -->
+      <!-- ============================================================== -->
       <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-5 mb-6 text-white">
         <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div>
-            <p class="text-xs uppercase tracking-wider text-slate-400 font-medium">Tuyau Airtable → n8n → nginx</p>
-            <h3 class="text-base font-semibold mt-0.5">Records reçus</h3>
+            <p class="text-xs uppercase tracking-wider text-slate-400 font-medium">Lecture intelligente du planning</p>
+            <h3 class="text-base font-semibold mt-0.5">Pose une question</h3>
           </div>
-          <span class="text-xs text-slate-400">Cible seeding : 185 records · S18 → S25</span>
+          <span class="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 border border-slate-600">
+            Disponible Phase 4
+          </span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-            <p class="text-xs uppercase tracking-wider text-slate-400 font-medium mb-2">Total</p>
-            <div class="flex items-baseline gap-2">
-              <span class="text-3xl font-semibold" x-text="plannings.length"></span>
-              <span class="text-sm text-slate-400">records</span>
-            </div>
-            <p class="text-xs mt-1"
-               :class="plannings.length === 185 ? 'text-emerald-400' : 'text-amber-400'"
-               x-text="plannings.length === 185 ? '✓ Conforme cible' : '⚠ Écart cible 185'"></p>
+        <div class="space-y-3">
+          <div class="relative">
+            <input type="text"
+                   disabled
+                   placeholder="Pose une question sur ce planning…"
+                   class="ai-placeholder-input w-full px-4 py-3 text-sm rounded-lg focus:outline-none">
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">Inactif</span>
           </div>
-          <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-            <p class="text-xs uppercase tracking-wider text-slate-400 font-medium mb-2">Première date</p>
-            <div class="text-xl font-semibold" x-text="datesRange.min"></div>
-            <p class="text-xs text-slate-400 mt-1">attendue : 27/04/2026 (S18)</p>
-          </div>
-          <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
-            <p class="text-xs uppercase tracking-wider text-slate-400 font-medium mb-2">Dernière date</p>
-            <div class="text-xl font-semibold" x-text="datesRange.max"></div>
-            <p class="text-xs text-slate-400 mt-1">attendue : 19/06/2026 (S25)</p>
+          <div class="flex flex-wrap gap-2">
+            <button disabled class="ai-placeholder-chip text-xs px-3 py-1.5 rounded-full">Qui couvre l'absence Karim ?</button>
+            <button disabled class="ai-placeholder-chip text-xs px-3 py-1.5 rounded-full">Pourquoi cette affectation ?</button>
+            <button disabled class="ai-placeholder-chip text-xs px-3 py-1.5 rounded-full">Charge S22 par agent</button>
           </div>
         </div>
       </div>
 
-      <!-- DISTRIBUTION PAR STATUT -->
-      <div class="mb-6">
-        <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Distribution par statut</p>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <template x-for="s in statutsAffichables" :key="s.label">
-            <div class="kpi-card bg-white border border-slate-200 rounded-xl p-4">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs uppercase tracking-wider text-slate-500 font-medium" x-text="s.label"></span>
-                <span class="w-2 h-2 rounded-full" :class="s.dot"></span>
-              </div>
-              <div class="flex items-baseline gap-2">
-                <span class="text-3xl font-semibold text-slate-900" x-text="s.count"></span>
-                <span class="text-sm text-slate-400" x-text="s.count > 0 ? '(' + s.pct + '%)' : ''"></span>
-              </div>
-              <div class="text-xs text-slate-500 mt-1" x-text="s.hint"></div>
-            </div>
-          </template>
+      <!-- ============================================================== -->
+      <!-- FRISE S22 PAR AGENT (cœur Étape 2)                              -->
+      <!-- ============================================================== -->
+      <div class="mb-8">
+        <div class="flex items-end justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Frise temporelle · vue Par agent</p>
+            <h3 class="text-base font-semibold text-slate-900 mt-0.5">
+              Semaine S22 — 25 au 29 mai 2026
+              <span class="ml-2 text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200">Cette semaine</span>
+            </h3>
+          </div>
+          <div class="text-xs text-slate-500">
+            <span x-text="frise.length"></span> agents · <span x-text="friseStats.friction"></span> avec friction · <span x-text="friseStats.actifs"></span> actifs
+          </div>
         </div>
-        <div x-show="statutsInconnus.length > 0" class="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-          <p class="text-xs text-amber-800">
-            <span class="font-semibold">⚠ Statuts hors contrat détectés :</span>
-            <span x-text="statutsInconnus.map(s => s.label + ' (' + s.count + ')').join(' · ')"></span>
-          </p>
+
+        <!-- Légende compacte -->
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 mb-3">
+          <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-emerald-100 border border-emerald-300"></span>Réalisé</span>
+          <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-sky-100 border border-sky-300"></span>Prévu</span>
+          <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-slate-100 border border-slate-300"></span>Absent</span>
+          <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-violet-100 border border-violet-300"></span>Modifié</span>
+          <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm frise-empty border border-slate-200"></span>Aucun record</span>
+          <span class="inline-flex items-center gap-1 ml-auto text-slate-400">📅 Congés · 🏥 Maladie · 🎓 Formation · 🌉 Pont</span>
         </div>
-      </div>
 
-      <!-- DISTRIBUTION PAR CRÉNEAU -->
-      <div class="mb-6">
-        <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Distribution par créneau</p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <template x-for="c in creneauxAffichables" :key="c.label">
-            <div class="kpi-card bg-white border border-slate-200 rounded-xl p-4">
-              <div class="flex items-center justify-between mb-2">
-                <span class="text-xs uppercase tracking-wider text-slate-500 font-medium" x-text="c.label"></span>
-                <span class="w-2 h-2 rounded-full" :class="c.dot"></span>
-              </div>
-              <div class="flex items-baseline gap-2">
-                <span class="text-3xl font-semibold text-slate-900" x-text="c.count"></span>
-                <span class="text-sm text-slate-400" x-text="c.count > 0 ? '(' + c.pct + '%)' : ''"></span>
-              </div>
-              <div class="text-xs text-slate-500 mt-1" x-text="c.hint"></div>
-            </div>
-          </template>
-        </div>
-      </div>
-
-      <!-- =============================================================== -->
-      <!-- ÉTAPE 1.5 — DIAGNOSTIC SEEDING (3 panneaux)                     -->
-      <!-- =============================================================== -->
-
-      <!-- 1.5.A — Répartition par semaine ISO -->
-      <div class="mb-6">
-        <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Répartition par semaine ISO — densité de friction</p>
+        <!-- Grille -->
         <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <table class="w-full text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200">
-              <tr>
-                <th class="text-left px-4 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Semaine</th>
-                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Prévu</th>
-                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Réalisé</th>
-                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Absent</th>
-                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Modifié</th>
-                <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Friction</th>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="w in parSemaine" :key="w.semaine">
-                <tr class="border-t border-slate-100" :class="w.semaine === 22 ? 'bg-sky-50' : ''">
-                  <td class="px-4 py-2">
-                    <span class="font-semibold text-slate-900" x-text="'S' + w.semaine"></span>
-                    <span class="text-xs text-slate-400 ml-2">lun. <span x-text="w.mondayDate"></span></span>
-                    <span x-show="w.semaine === 22" class="ml-2 text-xs text-sky-700 font-medium">· Cette semaine</span>
-                  </td>
-                  <td class="text-right px-3 py-2 text-slate-700" x-text="w['Prévu']"></td>
-                  <td class="text-right px-3 py-2 text-slate-700" x-text="w['Réalisé']"></td>
-                  <td class="text-right px-3 py-2"
-                      :class="w['Absent'] === 0 ? 'text-slate-300' : 'text-slate-700 font-medium'"
-                      x-text="w['Absent']"></td>
-                  <td class="text-right px-3 py-2"
-                      :class="w['Modifié'] === 0 ? 'text-slate-300' : 'text-violet-700 font-medium'"
-                      x-text="w['Modifié']"></td>
-                  <td class="text-right px-3 py-2 text-xs">
-                    <span x-show="(w['Absent'] + w['Modifié']) === 0" class="text-amber-700 font-medium">⚠ aucune</span>
-                    <span x-show="(w['Absent'] + w['Modifié']) > 0" class="text-emerald-700"
-                          x-text="(w['Absent'] + w['Modifié']) + ' record' + ((w['Absent'] + w['Modifié']) > 1 ? 's' : '')"></span>
-                  </td>
-                </tr>
-              </template>
-            </tbody>
-          </table>
+          <!-- Header de la grille -->
+          <div class="frise-grid border-b border-slate-200 bg-slate-50">
+            <div class="px-4 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium border-r border-slate-200">
+              Agent
+            </div>
+            <div class="px-4 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium frise-current">
+              S22 · 25-29/05
+            </div>
+          </div>
+
+          <!-- Lignes agents -->
+          <template x-for="row in frise" :key="row.agent.rec_id">
+            <div class="frise-grid border-t border-slate-100 hover:bg-slate-50/40 transition">
+
+              <!-- Col gauche : agent -->
+              <div class="px-4 py-2 border-r border-slate-200 flex items-center gap-3 sticky left-0 bg-white">
+                <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold"
+                     :class="avatarClass(row.agent.equipe)"
+                     x-text="initials(row.agent)"></div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-sm font-medium text-slate-900 truncate"
+                       x-text="(row.agent.prenom + ' ' + row.agent.nom).trim()"></div>
+                  <div class="text-xs text-slate-500 truncate" x-text="row.agent.equipe"></div>
+                </div>
+                <span x-show="row.hasFriction"
+                      class="flex-shrink-0 w-2 h-2 rounded-full bg-amber-500"
+                      title="Friction sur S22"></span>
+              </div>
+
+              <!-- Col droite : cellule S22 -->
+              <div class="p-2 frise-current">
+
+                <!-- Cas 1 : aucun record S22 -->
+                <div x-show="row.cellType === 'empty'"
+                     class="frise-cell frise-empty rounded border border-slate-200 flex items-center justify-center">
+                  <span class="text-xs text-slate-400">—</span>
+                </div>
+
+                <!-- Cas 2 : cellule unique (matin et aprem cohérents, ou un seul créneau couvert) -->
+                <div x-show="row.cellType === 'single'"
+                     class="frise-cell rounded border px-3 py-2 flex flex-col justify-center"
+                     :class="cellClass(row.single)">
+                  <div class="flex items-center justify-between gap-2 mb-1">
+                    <span class="text-xs font-semibold uppercase tracking-wider" x-text="row.single.statut"></span>
+                    <span x-show="row.single.motif" class="text-base leading-none" x-text="motifPicto(row.single.motif)"></span>
+                  </div>
+                  <div class="text-xs text-slate-700 truncate">
+                    <span x-show="row.single.machine_nom" x-text="row.single.machine_nom"></span>
+                    <span x-show="!row.single.machine_nom && row.single.motif" x-text="row.single.motif"></span>
+                    <span x-show="!row.single.machine_nom && !row.single.motif" class="text-slate-400">—</span>
+                  </div>
+                  <div x-show="row.single.couvrePar" class="mt-1">
+                    <span class="badge-modifie text-xs px-1.5 py-0.5 rounded" x-text="'↺ couvre ' + row.single.couvrePar"></span>
+                  </div>
+                  <div x-show="row.single.commentaireFlag" class="mt-1 text-xs text-slate-500 italic truncate">
+                    « <span x-text="row.single.commentaireExcerpt"></span> »
+                  </div>
+                </div>
+
+                <!-- Cas 3 : demi-cellules empilées (mix Matin/Aprem différents) -->
+                <div x-show="row.cellType === 'split'" class="frise-cell flex flex-col gap-1">
+
+                  <!-- Demi-cellule MATIN -->
+                  <div class="frise-half rounded border px-2 py-1 flex items-center justify-between gap-2"
+                       :class="cellClass(row.matin)">
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                      <span class="text-xs font-mono text-slate-500 flex-shrink-0">M</span>
+                      <span class="text-xs font-medium truncate" x-text="cellLabel(row.matin)"></span>
+                    </div>
+                    <span x-show="row.matin && row.matin.motif" class="text-sm leading-none" x-text="motifPicto(row.matin.motif)"></span>
+                    <span x-show="row.matin && row.matin.couvrePar" class="badge-modifie text-xs px-1.5 py-0.5 rounded flex-shrink-0" x-text="'↺ ' + row.matin.couvrePar"></span>
+                  </div>
+
+                  <!-- Demi-cellule APREM -->
+                  <div class="frise-half rounded border px-2 py-1 flex items-center justify-between gap-2"
+                       :class="cellClass(row.aprem)">
+                    <div class="flex items-center gap-2 min-w-0 flex-1">
+                      <span class="text-xs font-mono text-slate-500 flex-shrink-0">A</span>
+                      <span class="text-xs font-medium truncate" x-text="cellLabel(row.aprem)"></span>
+                    </div>
+                    <span x-show="row.aprem && row.aprem.motif" class="text-sm leading-none" x-text="motifPicto(row.aprem.motif)"></span>
+                    <span x-show="row.aprem && row.aprem.couvrePar" class="badge-modifie text-xs px-1.5 py-0.5 rounded flex-shrink-0" x-text="'↺ ' + row.aprem.couvrePar"></span>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+          </template>
+
+          <div x-show="frise.length === 0" class="p-6 text-center text-sm text-slate-500">
+            Aucun agent disponible.
+          </div>
         </div>
-        <p class="text-xs text-slate-500 mt-2">
-          La colonne <span class="font-medium">Friction</span> agrège Absent + Modifié. Une semaine à 0 (en ambre) sera visuellement plate dans la frise.
+
+        <p class="text-xs text-slate-400 mt-3">
+          Vue Par agent · cellule semaine agrégée · les agents avec friction (Absent ou Modifié) sont remontés en haut. Le toggle Par machine arrive en Étape 4 ; la frise 8 semaines en Étape 3.
         </p>
       </div>
 
-      <!-- 1.5.B — Densité narrative -->
+      <!-- ============================================================== -->
+      <!-- TOGGLE DIAGNOSTIC SEEDING (1.5 replié par défaut)              -->
+      <!-- ============================================================== -->
       <div class="mb-6">
-        <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Densité narrative — commentaires métier</p>
-        <div class="bg-white border border-slate-200 rounded-xl p-5">
-          <div class="flex items-baseline gap-3 mb-4">
-            <span class="text-3xl font-semibold"
-                  :class="densiteNarrative.pct >= 50 ? 'text-emerald-600' : (densiteNarrative.pct >= 30 ? 'text-amber-600' : 'text-red-600')"
-                  x-text="densiteNarrative.total"></span>
-            <span class="text-sm text-slate-500" x-text="'/ ' + plannings.length + ' records avec commentaire métier (' + densiteNarrative.pct + '%)'"></span>
+        <button @click="showDiagnostic = !showDiagnostic"
+                class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition">
+          <div class="flex items-center gap-3">
+            <svg class="w-4 h-4 text-slate-500 transition-transform"
+                 :class="showDiagnostic ? 'rotate-90' : ''"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+            <span class="text-sm font-medium text-slate-900">Diagnostic seeding (Étape 1.5)</span>
+            <span class="text-xs text-slate-500" x-text="diagBadge"></span>
           </div>
-          <div class="space-y-3">
-            <template x-for="stat in densiteNarrative.parStatut" :key="stat.label">
-              <div class="flex items-center gap-3 text-sm">
-                <span class="w-24 text-slate-500" x-text="stat.label"></span>
-                <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                  <div class="h-full rounded-full transition-all"
-                       :class="stat.pct >= 50 ? 'bg-emerald-500' : (stat.pct >= 30 ? 'bg-amber-500' : 'bg-red-500')"
-                       :style="'width: ' + stat.pct + '%'"></div>
+          <span class="text-xs text-slate-400" x-show="!showDiagnostic">Replié — cliquer pour déplier</span>
+          <span class="text-xs text-slate-400" x-show="showDiagnostic">Cliquer pour replier</span>
+        </button>
+      </div>
+
+      <div x-show="showDiagnostic" x-cloak
+           x-transition:enter="transition ease-out duration-200"
+           x-transition:enter-start="opacity-0 -translate-y-1"
+           x-transition:enter-end="opacity-100 translate-y-0">
+
+        <!-- BLOC TOTAL + PLAGE DE DATES -->
+        <div class="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-5 mb-6 text-white">
+          <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-medium">Tuyau Airtable → n8n → nginx</p>
+              <h3 class="text-base font-semibold mt-0.5">Records reçus</h3>
+            </div>
+            <span class="text-xs text-slate-400">Cible seeding : 185 records · S18 → S25</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-medium mb-2">Total</p>
+              <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-semibold" x-text="plannings.length"></span>
+                <span class="text-sm text-slate-400">records</span>
+              </div>
+              <p class="text-xs mt-1"
+                 :class="plannings.length === 185 ? 'text-emerald-400' : 'text-amber-400'"
+                 x-text="plannings.length === 185 ? '✓ Conforme cible' : '⚠ Écart cible 185'"></p>
+            </div>
+            <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-medium mb-2">Première date</p>
+              <div class="text-xl font-semibold" x-text="datesRange.min"></div>
+              <p class="text-xs text-slate-400 mt-1">attendue : 27/04/2026 (S18)</p>
+            </div>
+            <div class="bg-slate-700/50 rounded-lg p-4 border border-slate-600">
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-medium mb-2">Dernière date</p>
+              <div class="text-xl font-semibold" x-text="datesRange.max"></div>
+              <p class="text-xs text-slate-400 mt-1">attendue : 19/06/2026 (S25)</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- DISTRIBUTION PAR STATUT -->
+        <div class="mb-6">
+          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Distribution par statut</p>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <template x-for="s in statutsAffichables" :key="s.label">
+              <div class="kpi-card bg-white border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs uppercase tracking-wider text-slate-500 font-medium" x-text="s.label"></span>
+                  <span class="w-2 h-2 rounded-full" :class="s.dot"></span>
                 </div>
-                <span class="text-xs text-slate-500 w-32 text-right" x-text="stat.avec + ' / ' + stat.total + ' (' + stat.pct + '%)'"></span>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-semibold text-slate-900" x-text="s.count"></span>
+                  <span class="text-sm text-slate-400" x-text="s.count > 0 ? '(' + s.pct + '%)' : ''"></span>
+                </div>
+                <div class="text-xs text-slate-500 mt-1" x-text="s.hint"></div>
               </div>
             </template>
           </div>
-          <div class="mt-4 pt-3 border-t border-slate-100 text-xs"
-               :class="densiteNarrative.pct >= 50 ? 'text-emerald-700' : (densiteNarrative.pct >= 30 ? 'text-amber-700' : 'text-red-700')">
-            <span x-show="densiteNarrative.pct >= 50">✓ Matériau narratif suffisant pour drawer + IA Phase 4</span>
-            <span x-show="densiteNarrative.pct >= 30 && densiteNarrative.pct < 50">⚠ Matériau juste — drawer fonctionnel mais IA Phase 4 risque pauvreté</span>
-            <span x-show="densiteNarrative.pct < 30">✗ Matériau insuffisant — enrichir seeding Airtable avant Étape 5</span>
+          <div x-show="statutsInconnus.length > 0" class="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <p class="text-xs text-amber-800">
+              <span class="font-semibold">⚠ Statuts hors contrat détectés :</span>
+              <span x-text="statutsInconnus.map(s => s.label + ' (' + s.count + ')').join(' · ')"></span>
+            </p>
           </div>
         </div>
-      </div>
 
-      <!-- 1.5.C — Check records-clés du brief -->
-      <div class="mb-6">
-        <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Records-clés brief — vérification présence</p>
-        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          <template x-for="item in checkRecordsCles" :key="item.id">
-            <div class="flex items-start gap-3 px-4 py-3 border-t border-slate-100 first:border-t-0">
-              <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold mt-0.5"
-                    :class="item.found ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'"
-                    x-text="item.found ? '✓' : '✗'"></span>
-              <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium text-slate-900" x-text="item.label"></div>
-                <div class="text-xs text-slate-500 font-mono mt-0.5" x-text="item.id"></div>
-                <div x-show="item.found" class="text-xs text-slate-600 mt-1.5">
-                  <span class="font-medium" x-text="item.found ? ('S' + getISOWeek(item.found.date)) : ''"></span>
-                  <span class="text-slate-400"> · </span>
-                  <span x-text="item.found ? item.found.date : ''"></span>
-                  <span class="text-slate-400"> · </span>
-                  <span x-text="item.found ? (item.found.creneau || 'sans créneau') : ''"></span>
-                  <span class="text-slate-400"> · </span>
-                  <span class="font-medium" x-text="item.found ? item.found.statut : ''"></span>
-                  <span class="text-slate-400"> · </span>
-                  <span x-text="item.found ? (item.found.agent_nom || '—') : ''"></span>
-                  <span x-show="item.found && item.found.machine_nom" class="text-slate-400"> sur </span>
-                  <span x-show="item.found && item.found.machine_nom" x-text="item.found ? item.found.machine_nom : ''"></span>
+        <!-- DISTRIBUTION PAR CRÉNEAU -->
+        <div class="mb-6">
+          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Distribution par créneau</p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <template x-for="c in creneauxAffichables" :key="c.label">
+              <div class="kpi-card bg-white border border-slate-200 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs uppercase tracking-wider text-slate-500 font-medium" x-text="c.label"></span>
+                  <span class="w-2 h-2 rounded-full" :class="c.dot"></span>
                 </div>
-                <div x-show="item.found && item.found.commentaire_metier && item.found.commentaire_metier.trim() !== ''"
-                     class="text-xs text-slate-700 italic mt-1 pl-2 border-l-2 border-slate-200"
-                     x-text="item.found ? ('« ' + item.found.commentaire_metier + ' »') : ''"></div>
-                <div x-show="!item.found" class="text-xs text-red-700 mt-1.5">Absent du payload reçu — à enrichir dans Airtable avant Étape 2.</div>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-3xl font-semibold text-slate-900" x-text="c.count"></span>
+                  <span class="text-sm text-slate-400" x-text="c.count > 0 ? '(' + c.pct + '%)' : ''"></span>
+                </div>
+                <div class="text-xs text-slate-500 mt-1" x-text="c.hint"></div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- 1.5.A — Répartition par semaine ISO -->
+        <div class="mb-6">
+          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Répartition par semaine ISO — densité de friction</p>
+          <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th class="text-left px-4 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Semaine</th>
+                  <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Prévu</th>
+                  <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Réalisé</th>
+                  <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Absent</th>
+                  <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Modifié</th>
+                  <th class="text-right px-3 py-2 text-xs uppercase tracking-wider text-slate-500 font-medium">Friction</th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="w in parSemaine" :key="w.semaine">
+                  <tr class="border-t border-slate-100" :class="w.semaine === 22 ? 'bg-sky-50' : ''">
+                    <td class="px-4 py-2">
+                      <span class="font-semibold text-slate-900" x-text="'S' + w.semaine"></span>
+                      <span class="text-xs text-slate-400 ml-2">lun. <span x-text="w.mondayDate"></span></span>
+                      <span x-show="w.semaine === 22" class="ml-2 text-xs text-sky-700 font-medium">· Cette semaine</span>
+                    </td>
+                    <td class="text-right px-3 py-2 text-slate-700" x-text="w['Prévu']"></td>
+                    <td class="text-right px-3 py-2 text-slate-700" x-text="w['Réalisé']"></td>
+                    <td class="text-right px-3 py-2"
+                        :class="w['Absent'] === 0 ? 'text-slate-300' : 'text-slate-700 font-medium'"
+                        x-text="w['Absent']"></td>
+                    <td class="text-right px-3 py-2"
+                        :class="w['Modifié'] === 0 ? 'text-slate-300' : 'text-violet-700 font-medium'"
+                        x-text="w['Modifié']"></td>
+                    <td class="text-right px-3 py-2 text-xs">
+                      <span x-show="(w['Absent'] + w['Modifié']) === 0" class="text-amber-700 font-medium">⚠ aucune</span>
+                      <span x-show="(w['Absent'] + w['Modifié']) > 0" class="text-emerald-700"
+                            x-text="(w['Absent'] + w['Modifié']) + ' record' + ((w['Absent'] + w['Modifié']) > 1 ? 's' : '')"></span>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">
+            La colonne <span class="font-medium">Friction</span> agrège Absent + Modifié. Une semaine à 0 (en ambre) sera visuellement plate dans la frise.
+          </p>
+        </div>
+
+        <!-- 1.5.B — Densité narrative (VERDICT MÉTIER prioritaire) -->
+        <div class="mb-6">
+          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Densité narrative — commentaires métier</p>
+          <div class="bg-white border border-slate-200 rounded-xl p-5">
+
+            <!-- VERDICT MÉTIER (Modifié + Absent combinés) -->
+            <div class="mb-5 pb-5 border-b border-slate-100">
+              <div class="flex items-baseline gap-3 mb-2 flex-wrap">
+                <span class="text-3xl font-semibold"
+                      :class="densiteNarrative.verdictMetier.pct >= 50 ? 'text-emerald-600' : (densiteNarrative.verdictMetier.pct >= 30 ? 'text-amber-600' : 'text-red-600')"
+                      x-text="densiteNarrative.verdictMetier.pct + '%'"></span>
+                <div>
+                  <div class="text-sm font-medium text-slate-900">Verdict métier</div>
+                  <div class="text-xs text-slate-500" x-text="densiteNarrative.verdictMetier.avec + ' / ' + densiteNarrative.verdictMetier.total + ' records Modifié + Absent commentés'"></div>
+                </div>
+              </div>
+              <div class="text-xs"
+                   :class="densiteNarrative.verdictMetier.pct >= 50 ? 'text-emerald-700' : (densiteNarrative.verdictMetier.pct >= 30 ? 'text-amber-700' : 'text-red-700')">
+                <span x-show="densiteNarrative.verdictMetier.pct >= 50">✓ Matériau narratif suffisant — la friction réelle est commentée</span>
+                <span x-show="densiteNarrative.verdictMetier.pct >= 30 && densiteNarrative.verdictMetier.pct < 50">⚠ Matériau juste — drawer Étape 5 fonctionnel mais IA Phase 4 risque pauvreté</span>
+                <span x-show="densiteNarrative.verdictMetier.pct < 30">✗ Matériau insuffisant sur la friction — enrichir Modifié/Absent avant Phase 4</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-2">
+                On ne note que ce qui porte de la friction métier (Absent + Modifié). Les statuts Prévu/Réalisé routiniers ne nécessitent pas de commentaire.
+              </p>
+            </div>
+
+            <!-- VERDICT GLOBAL (secondaire, conservé pour traçabilité) -->
+            <div>
+              <div class="flex items-baseline gap-3 mb-3">
+                <span class="text-sm font-medium text-slate-500" x-text="densiteNarrative.global.pct + '%'"></span>
+                <div class="text-xs text-slate-500" x-text="'Verdict global non pondéré · ' + densiteNarrative.global.avec + ' / ' + plannings.length + ' records'"></div>
+              </div>
+              <div class="space-y-2">
+                <template x-for="stat in densiteNarrative.parStatut" :key="stat.label">
+                  <div class="flex items-center gap-3 text-sm">
+                    <span class="w-24 text-slate-500" x-text="stat.label"></span>
+                    <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                      <div class="h-full rounded-full transition-all"
+                           :class="stat.pct >= 50 ? 'bg-emerald-500' : (stat.pct >= 30 ? 'bg-amber-500' : 'bg-red-500')"
+                           :style="'width: ' + stat.pct + '%'"></div>
+                    </div>
+                    <span class="text-xs text-slate-500 w-32 text-right" x-text="stat.avec + ' / ' + stat.total + ' (' + stat.pct + '%)'"></span>
+                  </div>
+                </template>
               </div>
             </div>
-          </template>
-        </div>
-        <p class="text-xs text-slate-500 mt-2">
-          5 records sont annoncés dans le brief comme structurants pour la démo (frictions S22 + collision LAMBERT 05/06 S23).
-        </p>
-      </div>
 
-      <!-- =============================================================== -->
-      <!-- FIN ÉTAPE 1.5                                                    -->
-      <!-- =============================================================== -->
+          </div>
+        </div>
 
-      <!-- DEBUG : DUMP 3 PREMIERS RECORDS -->
-      <div class="mb-6">
-        <div class="flex items-center justify-between mb-2">
-          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Échantillon brut</p>
-          <button @click="showRaw = !showRaw"
-                  class="text-xs px-3 py-1 rounded-full border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition">
-            <span x-show="!showRaw">Afficher 3 records bruts</span>
-            <span x-show="showRaw">Masquer</span>
-          </button>
+        <!-- 1.5.C — Check records-clés du brief -->
+        <div class="mb-6">
+          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium mb-3">Records-clés brief — vérification présence</p>
+          <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            <template x-for="item in checkRecordsCles" :key="item.id">
+              <div class="flex items-start gap-3 px-4 py-3 border-t border-slate-100 first:border-t-0">
+                <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold mt-0.5"
+                      :class="item.found ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'"
+                      x-text="item.found ? '✓' : '✗'"></span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-slate-900" x-text="item.label"></div>
+                  <div class="text-xs text-slate-500 font-mono mt-0.5" x-text="item.id"></div>
+                  <div x-show="item.found" class="text-xs text-slate-600 mt-1.5">
+                    <span class="font-medium" x-text="item.found ? ('S' + getISOWeek(item.found.date)) : ''"></span>
+                    <span class="text-slate-400"> · </span>
+                    <span x-text="item.found ? item.found.date : ''"></span>
+                    <span class="text-slate-400"> · </span>
+                    <span x-text="item.found ? (item.found.creneau || 'sans créneau') : ''"></span>
+                    <span class="text-slate-400"> · </span>
+                    <span class="font-medium" x-text="item.found ? item.found.statut : ''"></span>
+                    <span class="text-slate-400"> · </span>
+                    <span x-text="item.found ? (item.found.agent_nom || '—') : ''"></span>
+                    <span x-show="item.found && item.found.machine_nom" class="text-slate-400"> sur </span>
+                    <span x-show="item.found && item.found.machine_nom" x-text="item.found ? item.found.machine_nom : ''"></span>
+                  </div>
+                  <div x-show="item.found && item.found.commentaire_metier && item.found.commentaire_metier.trim() !== ''"
+                       class="text-xs text-slate-700 italic mt-1 pl-2 border-l-2 border-slate-200"
+                       x-text="item.found ? ('« ' + item.found.commentaire_metier + ' »') : ''"></div>
+                  <div x-show="!item.found" class="text-xs text-red-700 mt-1.5">Absent du payload reçu — à enrichir dans Airtable avant Étape 2.</div>
+                </div>
+              </div>
+            </template>
+          </div>
+          <p class="text-xs text-slate-500 mt-2">
+            5 records sont annoncés dans le brief comme structurants pour la démo (frictions S22 + collision LAMBERT 05/06 S23).
+          </p>
         </div>
-        <div x-show="showRaw" x-cloak class="bg-slate-900 text-slate-100 rounded-lg p-4 overflow-auto">
-          <pre class="text-xs leading-relaxed" x-text="JSON.stringify(plannings.slice(0, 3), null, 2)"></pre>
+
+        <!-- DEBUG : DUMP 3 PREMIERS RECORDS -->
+        <div class="mb-6">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">Échantillon brut</p>
+            <button @click="showRaw = !showRaw"
+                    class="text-xs px-3 py-1 rounded-full border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition">
+              <span x-show="!showRaw">Afficher 3 records bruts</span>
+              <span x-show="showRaw">Masquer</span>
+            </button>
+          </div>
+          <div x-show="showRaw" x-cloak class="bg-slate-900 text-slate-100 rounded-lg p-4 overflow-auto">
+            <pre class="text-xs leading-relaxed" x-text="JSON.stringify(plannings.slice(0, 3), null, 2)"></pre>
+          </div>
         </div>
+
       </div>
 
       <p class="text-xs text-slate-400 mt-8 text-center">
@@ -321,27 +549,38 @@
     function planningApp() {
       return {
         plannings: [],
+        agents: [],
         loading: true,
         error: null,
         lastSync: '',
         showRaw: false,
+        showDiagnostic: false,
+
+        // === CHARGEMENT ===
 
         async load() {
           this.loading = true;
           this.error = null;
           try {
-            const res = await fetch('/api/planning');
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const data = await res.json();
-            if (!data.success) throw new Error(data.message || 'Réponse API invalide');
-            this.plannings = data.plannings || [];
+            // Fetch parallèle planning + agents (frise = besoin des 2)
+            const [resP, resA] = await Promise.all([
+              fetch('/api/planning'),
+              fetch('/api/agents')
+            ]);
+            if (!resP.ok) throw new Error('Planning HTTP ' + resP.status);
+            if (!resA.ok) throw new Error('Agents HTTP ' + resA.status);
+
+            const dataP = await resP.json();
+            const dataA = await resA.json();
+
+            if (!dataP.success) throw new Error(dataP.message || 'Planning : réponse API invalide');
+            if (!dataA.success) throw new Error(dataA.message || 'Agents : réponse API invalide');
+
+            this.plannings = dataP.plannings || [];
+            this.agents = dataA.agents || [];
             this.lastSync = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-            console.log('[Planning] ' + this.plannings.length + ' records chargés', {
-              first: this.plannings[0],
-              statuts: this.uniqueValues('statut'),
-              creneaux: this.uniqueValues('creneau'),
-              full: data
-            });
+
+            console.log('[Planning] ' + this.plannings.length + ' records · ' + this.agents.length + ' agents');
           } catch (e) {
             this.error = e.message;
           } finally {
@@ -349,7 +588,209 @@
           }
         },
 
-        // === UTILITAIRES ===
+        // === FRISE S22 ===
+
+        get frise() {
+          if (!this.agents.length) return [];
+
+          // Index records S22 par agent_rec_id
+          const recordsS22 = this.plannings.filter(p => p.date && this.getISOWeek(p.date) === 22);
+          const byAgent = {};
+          recordsS22.forEach(p => {
+            if (!p.agent_rec_id) return;
+            (byAgent[p.agent_rec_id] = byAgent[p.agent_rec_id] || []).push(p);
+          });
+
+          // Construire les lignes pour chaque agent du référentiel
+          const rows = this.agents.map(agent => {
+            const records = byAgent[agent.rec_id] || [];
+            return this.buildRow(agent, records);
+          });
+
+          // Tri : friction d'abord, puis alpha sur nom
+          rows.sort((a, b) => {
+            if (a.hasFriction !== b.hasFriction) return a.hasFriction ? -1 : 1;
+            const na = (a.agent.nom || '').toLowerCase();
+            const nb = (b.agent.nom || '').toLowerCase();
+            return na.localeCompare(nb);
+          });
+
+          return rows;
+        },
+
+        get friseStats() {
+          const friction = this.frise.filter(r => r.hasFriction).length;
+          const actifs = this.frise.filter(r => r.cellType !== 'empty').length;
+          return { friction, actifs };
+        },
+
+        buildRow(agent, records) {
+          // Tri par créneau (Matin avant Aprem) pour stabilité
+          const matin = records.find(r => r.creneau === 'Matin') || null;
+          const aprem = records.find(r => r.creneau === 'Après-midi') || null;
+          const sansCreneau = records.find(r => !r.creneau || r.creneau === '');
+
+          // Cas A : aucun record
+          if (!matin && !aprem && !sansCreneau) {
+            return { agent, cellType: 'empty', hasFriction: false };
+          }
+
+          // Cas B : record "sans créneau" présent (typique des absences plein-jour)
+          // → traité comme cellule unique
+          if (sansCreneau && !matin && !aprem) {
+            const enriched = this.enrichRecord(sansCreneau);
+            return {
+              agent,
+              cellType: 'single',
+              single: enriched,
+              hasFriction: this.isFrictionStatut(enriched.statut)
+            };
+          }
+
+          // Cas C : un seul créneau couvert (Matin OU Aprem)
+          if (matin && !aprem) {
+            const enriched = this.enrichRecord(matin);
+            return {
+              agent,
+              cellType: 'single',
+              single: enriched,
+              hasFriction: this.isFrictionStatut(enriched.statut)
+            };
+          }
+          if (aprem && !matin) {
+            const enriched = this.enrichRecord(aprem);
+            return {
+              agent,
+              cellType: 'single',
+              single: enriched,
+              hasFriction: this.isFrictionStatut(enriched.statut)
+            };
+          }
+
+          // Cas D : matin ET aprem couverts
+          const eM = this.enrichRecord(matin);
+          const eA = this.enrichRecord(aprem);
+          const hasFriction = this.isFrictionStatut(eM.statut) || this.isFrictionStatut(eA.statut);
+
+          // Si Matin === Aprem (même statut + même machine OU les deux absent/modifié sans machine)
+          const sameStatut = eM.statut === eA.statut;
+          const sameMachine = eM.machine_nom === eA.machine_nom;
+          const bothNoMachine = !eM.machine_nom && !eA.machine_nom;
+          if (sameStatut && (sameMachine || bothNoMachine)) {
+            // Cellule unique fusionnée — on prend le matin comme représentant
+            return {
+              agent,
+              cellType: 'single',
+              single: eM,
+              hasFriction
+            };
+          }
+
+          // Sinon : split
+          return {
+            agent,
+            cellType: 'split',
+            matin: eM,
+            aprem: eA,
+            hasFriction
+          };
+        },
+
+        enrichRecord(p) {
+          if (!p) return null;
+          const comment = (p.commentaire_metier || '').trim();
+          return {
+            ...p,
+            motif: this.extractMotif(p),
+            couvrePar: this.extractCouvrePar(p),
+            commentaireFlag: comment.length > 0,
+            commentaireExcerpt: comment.length > 60 ? comment.slice(0, 60) + '…' : comment
+          };
+        },
+
+        // Le motif vient du champ `motif_absence` si présent, sinon on essaye d'inférer
+        // depuis le commentaire (mots-clés). Hypothèse à vérifier : champ motif_absence
+        // existe ou non sur le payload. Fallback robuste si absent.
+        extractMotif(p) {
+          if (!p) return null;
+          if (p.motif_absence) return p.motif_absence;
+          const c = (p.commentaire_metier || '').toLowerCase();
+          if (p.statut !== 'Absent') return null;
+          if (c.includes('congé')) return 'Congés';
+          if (c.includes('maladie') || c.includes('arrêt')) return 'Maladie';
+          if (c.includes('formation') || c.includes('stage') || c.includes('b1v')) return 'Formation';
+          if (c.includes('pont')) return 'Pont';
+          return null;
+        },
+
+        // Pour les records Modifié : tenter d'extraire le nom de la personne couverte
+        // depuis le commentaire (hypothèse : "Couvre X" ou "Remplace X" ou via lookup
+        // `remplace_agent_nom`). Fallback null.
+        extractCouvrePar(p) {
+          if (!p || p.statut !== 'Modifié') return null;
+          if (p.remplace_agent_nom) return p.remplace_agent_nom;
+          const c = p.commentaire_metier || '';
+          const m1 = c.match(/(?:couvre|remplace)\s+([A-ZÉÈÀÂÎÔÛÄËÏÖÜ][a-zéèàâîôûäëïöü]+(?:\s+[A-ZÉÈÀÂÎÔÛÄËÏÖÜ][a-zéèàâîôûäëïöü]+)?)/i);
+          if (m1) return m1[1];
+          return null;
+        },
+
+        isFrictionStatut(s) {
+          return s === 'Absent' || s === 'Modifié';
+        },
+
+        motifPicto(motif) {
+          switch (motif) {
+            case 'Congés':     return '📅';
+            case 'Maladie':    return '🏥';
+            case 'Formation':  return '🎓';
+            case 'Stage':      return '🎓';
+            case 'Pont':       return '🌉';
+            default:           return '';
+          }
+        },
+
+        cellClass(rec) {
+          if (!rec) return 'frise-empty border-slate-200';
+          switch (rec.statut) {
+            case 'Réalisé':  return 'bg-emerald-50 border-emerald-200';
+            case 'Prévu':    return 'bg-sky-50 border-sky-200';
+            case 'Absent':   return 'bg-slate-100 border-slate-300 text-slate-600';
+            case 'Modifié':  return 'bg-violet-50 border-violet-200';
+            default:         return 'bg-white border-slate-200';
+          }
+        },
+
+        cellLabel(rec) {
+          if (!rec) return '—';
+          if (rec.machine_nom) return rec.machine_nom;
+          if (rec.motif) return rec.motif;
+          return rec.statut;
+        },
+
+        initials(a) {
+          const p = (a.prenom || '').charAt(0).toUpperCase();
+          const n = (a.nom || '').charAt(0).toUpperCase();
+          return (p + n) || '?';
+        },
+
+        avatarClass(equipe) {
+          switch (equipe) {
+            case 'Production':  return 'bg-blue-100 text-blue-700';
+            case 'Maintenance': return 'bg-violet-100 text-violet-700';
+            case 'Logistique':  return 'bg-orange-100 text-orange-700';
+            default:            return 'bg-slate-100 text-slate-600';
+          }
+        },
+
+        // === DIAGNOSTIC SEEDING (1.5) — repris depuis Étape 1.5 ===
+
+        get diagBadge() {
+          if (!this.plannings.length) return '';
+          const v = this.densiteNarrative.verdictMetier.pct;
+          const tag = v >= 50 ? '✓' : (v >= 30 ? '⚠' : '✗');
+          return tag + ' verdict métier ' + v + '% · ' + this.plannings.length + ' records';
+        },
 
         uniqueValues(field) {
           const counts = {};
@@ -369,7 +810,6 @@
           return this.plannings.filter(p => p.creneau === value).length;
         },
 
-        // ISO 8601 week number : algorithme standard (ajustement au jeudi)
         getISOWeek(dateInput) {
           if (!dateInput) return null;
           const date = new Date(dateInput);
@@ -380,7 +820,6 @@
           return 1 + Math.round(((date - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
         },
 
-        // Lundi de la semaine ISO contenant la date passée
         getMondayLabel(dateInput) {
           const d = new Date(dateInput);
           if (isNaN(d)) return '—';
@@ -390,8 +829,6 @@
           monday.setDate(diff);
           return monday.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
         },
-
-        // === STATUTS / CRÉNEAUX (Étape 1) ===
 
         get statutsAffichables() {
           const total = this.plannings.length || 1;
@@ -433,10 +870,7 @@
         },
 
         get datesRange() {
-          const dates = this.plannings
-            .map(p => p.date)
-            .filter(Boolean)
-            .sort();
+          const dates = this.plannings.map(p => p.date).filter(Boolean).sort();
           if (!dates.length) return { min: '—', max: '—' };
           return {
             min: this.formatDate(dates[0]),
@@ -451,9 +885,6 @@
           return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         },
 
-        // === ÉTAPE 1.5 : DIAGNOSTIC SEEDING ===
-
-        // 1.5.A — Répartition par semaine ISO
         get parSemaine() {
           const weeks = {};
           const validStatuts = ['Prévu', 'Réalisé', 'Absent', 'Modifié'];
@@ -466,10 +897,7 @@
             if (!weeks[w]) {
               weeks[w] = {
                 semaine: w,
-                'Prévu': 0,
-                'Réalisé': 0,
-                'Absent': 0,
-                'Modifié': 0,
+                'Prévu': 0, 'Réalisé': 0, 'Absent': 0, 'Modifié': 0,
                 total: 0,
                 mondayDate: this.getMondayLabel(p.date)
               };
@@ -483,11 +911,27 @@
           return Object.values(weeks).sort((a, b) => a.semaine - b.semaine);
         },
 
-        // 1.5.B — Densité narrative (commentaires métier)
+        // === 1.5.B — Recalibrée Étape 2 : verdict métier prioritaire ===
         get densiteNarrative() {
           const total = this.plannings.length || 1;
           const hasComment = (p) => p.commentaire_metier && p.commentaire_metier.trim() !== '';
           const avecCommentaire = this.plannings.filter(hasComment);
+
+          // Verdict métier : Modifié + Absent uniquement
+          const frictionRecords = this.plannings.filter(p => p.statut === 'Modifié' || p.statut === 'Absent');
+          const frictionAvec = frictionRecords.filter(hasComment);
+          const verdictMetier = {
+            avec: frictionAvec.length,
+            total: frictionRecords.length,
+            pct: frictionRecords.length ? Math.round(frictionAvec.length / frictionRecords.length * 100) : 0
+          };
+
+          // Verdict global (conservé en secondaire)
+          const global = {
+            avec: avecCommentaire.length,
+            total: this.plannings.length,
+            pct: Math.round(avecCommentaire.length / total * 100)
+          };
 
           const parStatut = ['Prévu', 'Réalisé', 'Absent', 'Modifié'].map(s => {
             const all = this.plannings.filter(p => p.statut === s);
@@ -500,14 +944,9 @@
             };
           });
 
-          return {
-            total: avecCommentaire.length,
-            pct: Math.round(avecCommentaire.length / total * 100),
-            parStatut
-          };
+          return { verdictMetier, global, parStatut };
         },
 
-        // 1.5.C — Check des 5 records-clés du brief
         get checkRecordsCles() {
           const cibles = [
             { id: 'recgh5LptLWdKfhZZ', label: 'Friction présente S22 — #1' },
