@@ -239,6 +239,9 @@
                   <div x-show="row.single.commentaireFlag" class="mt-1 text-xs text-slate-500 italic">
                     « <span x-text="row.single.commentaireExcerpt"></span> »
                   </div>
+                  <div x-show="multiRecordsLabel(row)" class="mt-1 text-[10px] text-slate-400 uppercase tracking-wider" :title="'Plusieurs records cette semaine — voir détail Étape 5'">
+                    <span x-text="multiRecordsLabel(row)"></span> cette semaine
+                  </div>
                 </div>
 
                 <div x-show="row.cellType === 'split'" class="frise-cell flex flex-col gap-1">
@@ -300,6 +303,9 @@
                   </div>
                   <div x-show="row.single.commentaireFlag" class="mt-2 text-xs text-slate-600 italic">
                     « <span x-text="row.single.commentaireFull"></span> »
+                  </div>
+                  <div x-show="multiRecordsLabel(row)" class="mt-2 text-[10px] text-slate-400 uppercase tracking-wider">
+                    <span x-text="multiRecordsLabel(row)"></span> cette semaine
                   </div>
                 </div>
 
@@ -673,37 +679,96 @@
           return this.frise.filter(r => r.cellType === 'empty').length;
         },
 
+        // === Règle d'agrégation cellule semaine ===
+        // Sur une semaine, un agent peut avoir N records sur le même créneau
+        // (ex : Mathieu a 1 Prévu lundi + 1 Modifié mardi). On choisit le record
+        // "winner" par priorité métier : Modifié > Absent > Prévu > Réalisé.
+        // Cela garantit que la friction ne sera jamais noyée par un Prévu routinier.
+        pickRecordByPriority(records) {
+          if (!records || records.length === 0) return null;
+          const priority = ['Modifié', 'Absent', 'Prévu', 'Réalisé'];
+          for (const statut of priority) {
+            const found = records.find(r => r.statut === statut);
+            if (found) return found;
+          }
+          // Statut hors contrat : on prend le premier en fallback
+          return records[0];
+        },
+
+        // Compteurs métier pour drawer Étape 5 et tooltip future
+        countByStatutInList(records) {
+          const counts = { 'Modifié': 0, 'Absent': 0, 'Prévu': 0, 'Réalisé': 0 };
+          records.forEach(r => {
+            if (counts[r.statut] !== undefined) counts[r.statut]++;
+          });
+          return counts;
+        },
+
         buildRow(agent, records) {
-          const matin = records.find(r => r.creneau === 'Matin') || null;
-          const aprem = records.find(r => r.creneau === 'Après-midi') || null;
-          const sansCreneau = records.find(r => !r.creneau || r.creneau === '');
+          // Séparation par créneau (TOUS les records, pas seulement le premier)
+          const matinRecords = records.filter(r => r.creneau === 'Matin');
+          const apremRecords = records.filter(r => r.creneau === 'Après-midi');
+          const sansCreneauRecords = records.filter(r => !r.creneau || r.creneau === '');
 
-          if (!matin && !aprem && !sansCreneau) return { agent, cellType: 'empty', hasFriction: false };
-
-          if (sansCreneau && !matin && !aprem) {
-            const e = this.enrichRecord(sansCreneau);
-            return { agent, cellType: 'single', single: e, hasFriction: this.isFrictionStatut(e.statut) };
-          }
-          if (matin && !aprem) {
-            const e = this.enrichRecord(matin);
-            return { agent, cellType: 'single', single: e, hasFriction: this.isFrictionStatut(e.statut) };
-          }
-          if (aprem && !matin) {
-            const e = this.enrichRecord(aprem);
-            return { agent, cellType: 'single', single: e, hasFriction: this.isFrictionStatut(e.statut) };
+          // Cas vide : aucun record du tout
+          if (matinRecords.length === 0 && apremRecords.length === 0 && sansCreneauRecords.length === 0) {
+            return { agent, cellType: 'empty', hasFriction: false };
           }
 
-          const eM = this.enrichRecord(matin);
-          const eA = this.enrichRecord(aprem);
+          // Application règle de priorité par créneau
+          const matinWinner = this.pickRecordByPriority(matinRecords);
+          const apremWinner = this.pickRecordByPriority(apremRecords);
+          const sansCreneauWinner = this.pickRecordByPriority(sansCreneauRecords);
+
+          // Métadata multi-records pour future logique drawer
+          const semaineStats = this.countByStatutInList(records);
+
+          // Cas A : seulement un record sansCreneau (typique absence/formation plein jour)
+          if (sansCreneauWinner && !matinWinner && !apremWinner) {
+            const e = this.enrichRecord(sansCreneauWinner);
+            return {
+              agent, cellType: 'single', single: e,
+              hasFriction: this.isFrictionStatut(e.statut),
+              semaineStats
+            };
+          }
+
+          // Cas B : un seul créneau (Matin OU Aprem)
+          if (matinWinner && !apremWinner) {
+            const e = this.enrichRecord(matinWinner);
+            return {
+              agent, cellType: 'single', single: e,
+              hasFriction: this.isFrictionStatut(e.statut),
+              semaineStats
+            };
+          }
+          if (apremWinner && !matinWinner) {
+            const e = this.enrichRecord(apremWinner);
+            return {
+              agent, cellType: 'single', single: e,
+              hasFriction: this.isFrictionStatut(e.statut),
+              semaineStats
+            };
+          }
+
+          // Cas C : les deux créneaux ont un winner
+          const eM = this.enrichRecord(matinWinner);
+          const eA = this.enrichRecord(apremWinner);
           const hasFriction = this.isFrictionStatut(eM.statut) || this.isFrictionStatut(eA.statut);
 
           const sameStatut = eM.statut === eA.statut;
           const sameMachine = eM.machine_nom === eA.machine_nom;
           const bothNoMachine = !eM.machine_nom && !eA.machine_nom;
           if (sameStatut && (sameMachine || bothNoMachine)) {
-            return { agent, cellType: 'single', single: eM, hasFriction };
+            return {
+              agent, cellType: 'single', single: eM,
+              hasFriction, semaineStats
+            };
           }
-          return { agent, cellType: 'split', matin: eM, aprem: eA, hasFriction };
+          return {
+            agent, cellType: 'split', matin: eM, aprem: eA,
+            hasFriction, semaineStats
+          };
         },
 
         enrichRecord(p) {
@@ -741,6 +806,24 @@
         },
 
         isFrictionStatut(s) { return s === 'Absent' || s === 'Modifié'; },
+
+        // Renvoie une chaîne courte "+1 Prévu" si l'agent a un autre record non-affiché.
+        // Si rien à signaler, renvoie '' (le span sera caché).
+        multiRecordsLabel(row) {
+          if (!row || !row.semaineStats) return '';
+          const stats = row.semaineStats;
+          const total = stats['Modifié'] + stats['Absent'] + stats['Prévu'] + stats['Réalisé'];
+
+          // Cas single : 1 record affiché, total > 1 → signaler le reste
+          if (row.cellType === 'single' && total > 1) {
+            return '+' + (total - 1) + ' autre' + (total - 1 > 1 ? 's' : '');
+          }
+          // Cas split : 2 records affichés, total > 2 → signaler le reste
+          if (row.cellType === 'split' && total > 2) {
+            return '+' + (total - 2) + ' autre' + (total - 2 > 1 ? 's' : '');
+          }
+          return '';
+        },
 
         motifPicto(motif) {
           switch (motif) {
