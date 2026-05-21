@@ -367,7 +367,11 @@
               <span class="text-xs uppercase tracking-wider text-slate-500 font-medium">Agent</span>
             </div>
             <template x-for="w in semaines" :key="w.num">
-              <div class="frise-th text-center" :class="w.cssClass">
+              <div class="frise-th text-center" :class="{
+                'week-past': w.num < SEMAINE_COURANTE,
+                'week-present': w.num === SEMAINE_COURANTE,
+                'week-future': w.num > SEMAINE_COURANTE
+              }">
                 <div class="text-xs font-semibold" :class="w.num === 22 ? 'text-sky-900' : 'text-slate-700'">
                   <span x-text="'S' + w.num"></span>
                   <span x-show="w.num === 22" class="ml-1 text-[10px] font-normal">· en cours</span>
@@ -396,7 +400,11 @@
 
                 <!-- Colonnes 2-9 : 8 cellules semaines -->
                 <template x-for="w in SEMAINES_RANGE" :key="row.agent.rec_id + '-w' + w">
-                  <div class="frise-cell" :class="weekTemporalityClass(w)">
+                  <div class="frise-cell" :class="{
+                    'week-past': w < SEMAINE_COURANTE,
+                    'week-present': w === SEMAINE_COURANTE,
+                    'week-future': w > SEMAINE_COURANTE
+                  }">
 
                     <!-- Cellule vide -->
                     <div x-show="row.weeks[w].cellType === 'empty'" class="cell-empty">—</div>
@@ -968,7 +976,7 @@
           if (p.motif_absence) return p.motif_absence;
           const c = (p.commentaire_metier || '').toLowerCase();
           if (p.statut !== 'Absent') return null;
-          if (c.includes('congé')) return 'Congés';
+          if (c.includes('congé') || c.includes('rtt')) return 'Congés';
           if (c.includes('maladie') || c.includes('arrêt')) return 'Maladie';
           if (c.includes('formation') || c.includes('stage') || c.includes('b1v')) return 'Formation';
           if (c.includes('pont')) return 'Pont';
@@ -991,7 +999,7 @@
         motifPicto(motif) {
           switch (motif) {
             case 'Congés':    return '📅';
-            case 'Maladie':   return '🏥';
+            case 'Maladie':   return '⚕';
             case 'Formation': return '🎓';
             case 'Stage':     return '🎓';
             case 'Pont':      return '🌉';
@@ -1014,6 +1022,9 @@
           if (!rec) return '—';
           if (rec.machine_nom) return rec.machine_nom;
           if (rec.motif) return rec.motif;
+          // Évite la tautologie "ABSENT · Absent" : si statut Absent sans machine ni motif identifié,
+          // on retourne tiret plutôt que de répéter le statut déjà affiché en titre de cellule.
+          if (rec.statut === 'Absent') return '—';
           return rec.statut;
         },
 
