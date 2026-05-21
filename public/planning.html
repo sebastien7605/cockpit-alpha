@@ -16,7 +16,7 @@
       50% { opacity: .4; }
     }
 
-    /* === Frise 8 semaines — grille scrollable avec sticky double === */
+    /* === Frise 8 semaines === */
     .frise-scroll-container {
       overflow-x: auto;
       overflow-y: visible;
@@ -25,14 +25,22 @@
       background: white;
       max-width: 100%;
     }
+    /* Mode agent : colonne sticky 200px */
     .frise-grid {
       display: grid;
       grid-template-columns: 200px repeat(8, 180px);
       min-width: max-content;
     }
+    /* Mode machine : colonne sticky 240px pour ne plus tronquer */
+    .frise-grid.view-machine {
+      grid-template-columns: 240px repeat(8, 180px);
+    }
     @media (max-width: 768px) {
       .frise-grid {
         grid-template-columns: 140px repeat(8, 130px);
+      }
+      .frise-grid.view-machine {
+        grid-template-columns: 160px repeat(8, 130px);
       }
     }
 
@@ -188,7 +196,6 @@
       padding: 0.25rem 0;
     }
 
-    /* Toggle vue Par agent / Par machine */
     .view-toggle {
       display: inline-flex;
       background: rgb(241 245 249);
@@ -216,18 +223,6 @@
       background: rgb(15 23 42);
       color: white;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
-
-    /* Avatar machine (carré arrondi vs cercle agent) */
-    .machine-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      font-size: 0.9rem;
     }
   </style>
 </head>
@@ -298,7 +293,7 @@
         <span class="text-xl text-slate-500 flex-shrink-0">💬</span>
       </div>
 
-      <!-- BANDEAU IA desktop pleine taille -->
+      <!-- BANDEAU IA desktop -->
       <div class="hidden md:block bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl p-5 mb-6 text-white">
         <div class="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div>
@@ -320,7 +315,7 @@
         </div>
       </div>
 
-      <!-- HEADER FRISE + TOGGLE VIEWMODE + TOGGLE DÉPLIER -->
+      <!-- HEADER FRISE + TOGGLE -->
       <div class="flex items-end justify-between mb-3 flex-wrap gap-2">
         <div class="min-w-0 flex-1">
           <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">
@@ -370,7 +365,7 @@
       <!-- FILTRES -->
       <div x-show="showFrise" x-cloak class="mb-4 space-y-2">
 
-        <!-- Filtre Équipe : agent only -->
+        <!-- Filtre Équipe (agent only) -->
         <div x-show="viewMode === 'agent'" class="flex items-center gap-2 flex-wrap">
           <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Équipe</span>
           <button @click="filterEquipe = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterEquipe === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Toutes</button>
@@ -379,12 +374,12 @@
           </template>
         </div>
 
-        <!-- Filtre Secteur : machine only -->
+        <!-- Filtre Type machine (machine only) -->
         <div x-show="viewMode === 'machine'" class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Secteur</span>
-          <button @click="filterSecteur = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterSecteur === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Tous</button>
-          <template x-for="sec in secteursDispo" :key="sec">
-            <button @click="filterSecteur = sec" class="pill text-xs px-3 py-1 rounded-full border" :class="filterSecteur === sec ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'" x-text="sec"></button>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Type</span>
+          <button @click="filterType = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Tous</button>
+          <template x-for="t in typesDispo" :key="t">
+            <button @click="filterType = t" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'" x-text="t"></button>
           </template>
         </div>
 
@@ -401,9 +396,9 @@
           </label>
         </div>
 
-        <div class="text-xs text-slate-500" x-show="filterEquipe || filterSecteur || filterStatut">
+        <div class="text-xs text-slate-500" x-show="filterEquipe || filterType || filterStatut">
           <span x-text="filteredFrise.length"></span> <span x-text="viewMode === 'agent' ? 'agent' : 'machine'"></span><span x-show="filteredFrise.length > 1">s</span> affiché<span x-show="filteredFrise.length > 1">s</span>
-          · <button @click="filterEquipe = null; filterSecteur = null; filterStatut = null" class="text-slate-700 underline hover:text-slate-900">tout réinitialiser</button>
+          · <button @click="filterEquipe = null; filterType = null; filterStatut = null" class="text-slate-700 underline hover:text-slate-900">tout réinitialiser</button>
         </div>
       </div>
 
@@ -421,9 +416,8 @@
 
         <!-- FRISE 8 SEMAINES -->
         <div class="frise-scroll-container">
-          <div class="frise-grid">
+          <div class="frise-grid" :class="viewMode === 'machine' ? 'view-machine' : ''">
 
-            <!-- HEADER ROW -->
             <div class="frise-corner">
               <span class="text-xs uppercase tracking-wider text-slate-500 font-medium" x-text="viewMode === 'agent' ? 'Agent' : 'Machine'"></span>
             </div>
@@ -441,21 +435,15 @@
               </div>
             </template>
 
-            <!-- LIGNES — boucle plate, display:contents -->
             <template x-for="row in filteredFrise" :key="row.entity.rec_id">
               <div class="frise-row-wrapper">
 
-                <!-- Colonne 1 sticky : entité (agent ou machine) -->
+                <!-- Colonne sticky : agent ou machine (icône machine RETIRÉE pour gagner de la place) -->
                 <div class="frise-agent-cell">
                   <template x-if="viewMode === 'agent'">
                     <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold"
                          :class="avatarClass(row.entity.equipe)"
                          x-text="initials(row.entity)"></div>
-                  </template>
-                  <template x-if="viewMode === 'machine'">
-                    <div class="machine-icon"
-                         :class="machineIconClass(row.entity.secteur)"
-                         x-text="machineIconPicto(row.entity.secteur)"></div>
                   </template>
                   <div class="min-w-0 flex-1">
                     <template x-if="viewMode === 'agent'">
@@ -466,8 +454,10 @@
                     </template>
                     <template x-if="viewMode === 'machine'">
                       <div>
-                        <div class="text-xs font-medium text-slate-900 truncate" x-text="row.entity.nom || row.entity.reference || '—'"></div>
-                        <div class="text-[10px] text-slate-500 truncate" x-text="row.entity.secteur || row.entity.type || '—'"></div>
+                        <div class="text-xs font-medium text-slate-900 truncate"
+                             :title="row.entity.nom"
+                             x-text="row.entity.nom || row.entity.reference || '—'"></div>
+                        <div class="text-[10px] text-slate-500 truncate" x-text="machineType(row.entity)"></div>
                       </div>
                     </template>
                   </div>
@@ -476,7 +466,6 @@
                         :title="'Friction sur ' + row.frictionWeeks.join(', ')"></span>
                 </div>
 
-                <!-- Colonnes 2-9 : 8 cellules semaines -->
                 <template x-for="w in SEMAINES_RANGE" :key="row.entity.rec_id + '-w' + w">
                   <div class="frise-cell" :class="{
                     'week-past': w < SEMAINE_COURANTE,
@@ -484,10 +473,8 @@
                     'week-future': w > SEMAINE_COURANTE
                   }">
 
-                    <!-- Cellule vide -->
                     <div x-show="row.weeks[w].cellType === 'empty'" class="cell-empty">—</div>
 
-                    <!-- Cellule single -->
                     <div x-show="row.weeks[w].cellType === 'single'"
                          class="cell-content frise-cell-content"
                          :class="cellClass(row.weeks[w].single)">
@@ -502,7 +489,7 @@
                            x-text="cellLabel(row.weeks[w].single)"></div>
                       <div x-show="row.weeks[w].single && row.weeks[w].single.couvrePar" class="mt-0.5">
                         <span class="badge-modifie"
-                              x-text="'↺ ' + (row.weeks[w].single ? row.weeks[w].single.couvrePar : '')"></span>
+                              x-text="couvreLabel(row.weeks[w].single ? row.weeks[w].single.couvrePar : '')"></span>
                       </div>
                       <div x-show="row.weeks[w].secondaryHint"
                            class="text-[9px] text-slate-500 italic truncate mt-auto"
@@ -512,7 +499,6 @@
                            x-text="row.weeks[w].multiHint"></div>
                     </div>
 
-                    <!-- Cellule split -->
                     <div x-show="row.weeks[w].cellType === 'split'" class="flex flex-col gap-1 flex-1 min-h-0">
                       <div class="cell-content cell-content-half frise-cell-content"
                            :class="cellClass(row.weeks[w].matin)">
@@ -526,7 +512,7 @@
                         </div>
                         <div x-show="row.weeks[w].matin && row.weeks[w].matin.couvrePar" class="-mt-0.5">
                           <span class="badge-modifie"
-                                x-text="'↺ ' + row.weeks[w].matin.couvrePar"></span>
+                                x-text="couvreLabel(row.weeks[w].matin.couvrePar)"></span>
                         </div>
                       </div>
                       <div class="cell-content cell-content-half frise-cell-content"
@@ -541,7 +527,7 @@
                         </div>
                         <div x-show="row.weeks[w].aprem && row.weeks[w].aprem.couvrePar" class="-mt-0.5">
                           <span class="badge-modifie"
-                                x-text="'↺ ' + row.weeks[w].aprem.couvrePar"></span>
+                                x-text="couvreLabel(row.weeks[w].aprem.couvrePar)"></span>
                         </div>
                       </div>
                     </div>
@@ -575,7 +561,7 @@
         </p>
       </div>
 
-      <!-- DIAGNOSTIC 1.5 (replié) -->
+      <!-- DIAGNOSTIC 1.5 (replié, inchangé) -->
       <div class="mt-8 mb-6">
         <button @click="showDiagnostic = !showDiagnostic" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition">
           <div class="flex items-center gap-3 min-w-0">
@@ -810,9 +796,9 @@
         showFrise: true,
         hideEmpty: true,
         filterEquipe: null,
-        filterSecteur: null,
+        filterType: null,
         filterStatut: null,
-        viewMode: 'agent', // 'agent' | 'machine'
+        viewMode: 'agent',
 
         SEMAINE_COURANTE: 22,
         SEMAINES_RANGE: [18, 19, 20, 21, 22, 23, 24, 25],
@@ -849,8 +835,7 @@
         setViewMode(mode) {
           if (mode === this.viewMode) return;
           this.viewMode = mode;
-          // Reset filtres non pertinents au mode actif pour éviter la confusion
-          if (mode === 'agent') this.filterSecteur = null;
+          if (mode === 'agent') this.filterType = null;
           if (mode === 'machine') this.filterEquipe = null;
         },
 
@@ -858,8 +843,29 @@
           return [...new Set(this.agents.map(a => a.equipe).filter(Boolean))].sort();
         },
 
-        get secteursDispo() {
-          return [...new Set(this.machines.map(m => m.secteur).filter(Boolean))].sort();
+        // === Type machine : champ API si dispo, sinon dérivé du nom === //
+        machineType(machine) {
+          if (!machine) return '—';
+          if (machine.type && machine.type.trim() !== '') return machine.type;
+          if (machine.categorie && machine.categorie.trim() !== '') return machine.categorie;
+          const nom = (machine.nom || '').toLowerCase();
+          if (nom.includes('pont roulant'))       return 'Pont roulant';
+          if (nom.includes('chariot rétractable')) return 'Chariot rétractable';
+          if (nom.includes('chariot élévateur'))   return 'Chariot élévateur';
+          if (nom.includes('gerbeur'))            return 'Gerbeur';
+          if (nom.includes('transpalette'))       return 'Transpalette';
+          if (nom.includes('fraiseuse'))          return 'Fraiseuse';
+          if (nom.includes('tour'))               return 'Tour';
+          if (nom.includes('perceuse'))           return 'Perceuse';
+          if (nom.includes('presse'))             return 'Presse';
+          if (nom.includes('robot'))              return 'Robot soudure';
+          if (nom.includes('ligne assemblage'))   return 'Ligne assemblage';
+          if (nom.includes('banc contrôle') || nom.includes('banc controle')) return 'Banc contrôle';
+          return machine.secteur || '—';
+        },
+
+        get typesDispo() {
+          return [...new Set(this.machines.map(m => this.machineType(m)).filter(t => t && t !== '—'))].sort();
         },
 
         get recordsSansMachine() {
@@ -874,7 +880,6 @@
           }));
         },
 
-        // === INDEX par entité === //
         get byAgentByWeek() {
           const map = {};
           this.plannings.forEach(p => {
@@ -901,7 +906,6 @@
           return map;
         },
 
-        // === FRISE par entité === //
         buildFriseForEntities(entities, indexByEntity) {
           const rows = entities.map(entity => {
             const entityRecords = indexByEntity[entity.rec_id] || {};
@@ -950,7 +954,7 @@
         get filteredFrise() {
           return this.frise.filter(row => {
             if (this.viewMode === 'agent' && this.filterEquipe && row.entity.equipe !== this.filterEquipe) return false;
-            if (this.viewMode === 'machine' && this.filterSecteur && row.entity.secteur !== this.filterSecteur) return false;
+            if (this.viewMode === 'machine' && this.filterType && this.machineType(row.entity) !== this.filterType) return false;
             if (this.hideEmpty && !row.hasAnyRecord) return false;
             if (this.filterStatut === 'friction' && !row.hasFrictionTotal) return false;
             if (this.filterStatut === 'Réalisé' && !this.rowHasStatut(row, 'Réalisé')) return false;
@@ -1033,7 +1037,6 @@
           const eA = this.enrichRecord(apremWinner);
           const hasFriction = this.isFrictionStatut(eM.statut) || this.isFrictionStatut(eA.statut);
 
-          // En vue Par machine, le "label" porte l'agent → équivalence si même agent + même statut
           const sameStatut = eM.statut === eA.statut;
           const sameMachine = eM.machine_nom === eA.machine_nom;
           const sameAgent = eM.agent_nom === eA.agent_nom;
@@ -1105,6 +1108,13 @@
           return null;
         },
 
+        // Badge couvre adapté au mode : en vue machine, on dit "remplace X"
+        couvreLabel(nom) {
+          if (!nom) return '';
+          if (this.viewMode === 'machine') return '↺ remplace ' + nom;
+          return '↺ ' + nom;
+        },
+
         isFrictionStatut(s) { return s === 'Absent' || s === 'Modifié'; },
 
         motifPicto(motif) {
@@ -1129,19 +1139,14 @@
           }
         },
 
-        // === Label cellule selon le mode === //
-        // Par agent : on affiche la machine ou le motif.
-        // Par machine : on affiche l'agent qui opère.
         cellLabel(rec) {
           if (!rec) return '—';
           if (this.viewMode === 'machine') {
-            // En vue Par machine, l'agent est l'info centrale
             if (rec.agent_nom) return rec.agent_nom;
             if (rec.motif) return rec.motif;
             if (rec.statut === 'Absent') return '—';
             return rec.statut;
           }
-          // Mode agent (legacy)
           if (rec.machine_nom) return rec.machine_nom;
           if (rec.motif) return rec.motif;
           if (rec.statut === 'Absent') return '—';
@@ -1175,23 +1180,6 @@
             case 'Logistique':  return 'bg-orange-100 text-orange-700';
             default:            return 'bg-slate-100 text-slate-600';
           }
-        },
-
-        machineIconClass(secteur) {
-          // Mapping doux par secteur — neutre si secteur inconnu
-          const s = (secteur || '').toLowerCase();
-          if (s.includes('product')) return 'bg-blue-100 text-blue-700';
-          if (s.includes('logist'))  return 'bg-orange-100 text-orange-700';
-          if (s.includes('maint'))   return 'bg-violet-100 text-violet-700';
-          return 'bg-slate-100 text-slate-600';
-        },
-
-        machineIconPicto(secteur) {
-          const s = (secteur || '').toLowerCase();
-          if (s.includes('product')) return '🏭';
-          if (s.includes('logist'))  return '📦';
-          if (s.includes('maint'))   return '🔧';
-          return '⚙';
         },
 
         equipeBadgeClass(equipe) {
