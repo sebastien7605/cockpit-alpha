@@ -9,6 +9,7 @@
   <style>
     [x-cloak] { display: none !important; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif; }
+    body.drawer-open { overflow: hidden; }
     .kpi-card { transition: all .15s ease; }
     .pulse-dot { animation: pulse 2s infinite; }
     @keyframes pulse {
@@ -99,6 +100,17 @@
       flex-direction: column;
       gap: 0.25rem;
       position: relative;
+    }
+    .frise-cell.clickable {
+      cursor: pointer;
+      transition: background .12s ease;
+    }
+    .frise-cell.clickable:hover {
+      background: rgb(248 250 252);
+    }
+    .frise-cell.clickable:focus-visible {
+      outline: 2px solid rgb(56 189 248);
+      outline-offset: -2px;
     }
     @media (max-width: 768px) {
       .frise-cell {
@@ -231,7 +243,6 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
-    /* Filtres mobile : scroll horizontal au lieu de wrap qui empile */
     .filter-row-mobile {
       display: flex;
       gap: 0.5rem;
@@ -245,6 +256,94 @@
     }
     .filter-row-mobile > * {
       flex-shrink: 0;
+    }
+
+    /* ============================================
+       DRAWER ÉTAPE 5
+       ============================================ */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.5);
+      z-index: 60;
+      backdrop-filter: blur(2px);
+    }
+    .drawer-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 440px;
+      max-width: 100vw;
+      background: white;
+      z-index: 70;
+      box-shadow: -8px 0 24px rgba(15, 23, 42, 0.12);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    @media (max-width: 640px) {
+      .drawer-panel {
+        width: 100vw;
+      }
+    }
+    .drawer-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid rgb(226 232 240);
+      background: rgb(248 250 252);
+      flex-shrink: 0;
+    }
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.25rem;
+    }
+    .drawer-footer {
+      padding: 0.75rem 1.25rem;
+      border-top: 1px solid rgb(226 232 240);
+      background: rgb(248 250 252);
+      flex-shrink: 0;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .drawer-record {
+      border: 1px solid rgb(226 232 240);
+      border-radius: 8px;
+      padding: 0.75rem;
+      margin-bottom: 0.75rem;
+      background: white;
+    }
+    .drawer-record:last-child { margin-bottom: 0; }
+    .drawer-record-statut {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid;
+    }
+    .drawer-record-statut.statut-realise { background: rgb(236 253 245); border-color: rgb(167 243 208); color: rgb(6 95 70); }
+    .drawer-record-statut.statut-prevu   { background: rgb(240 249 255); border-color: rgb(186 230 253); color: rgb(7 89 133); }
+    .drawer-record-statut.statut-absent  { background: rgb(241 245 249); border-color: rgb(203 213 225); color: rgb(71 85 105); }
+    .drawer-record-statut.statut-modifie { background: rgb(245 243 255); border-color: rgb(196 181 253); color: rgb(91 33 182); }
+
+    .drawer-record.collision {
+      border-left: 3px solid rgb(245 158 11);
+    }
+    .drawer-collision-banner {
+      background: rgb(254 243 199);
+      border: 1px solid rgb(252 211 77);
+      color: rgb(120 53 15);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
   </style>
 </head>
@@ -270,7 +369,7 @@
     </div>
   </header>
 
-  <main x-data="planningApp()" x-init="load()" class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+  <main x-data="planningApp()" x-init="load(); initKeyboardShortcuts()" class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
 
     <div class="flex items-end justify-between mb-6 flex-wrap gap-4">
       <div class="min-w-0">
@@ -337,11 +436,7 @@
         </div>
       </div>
 
-      <!-- ============================================ -->
-      <!-- HEADER FRISE : MOBILE empilé / DESKTOP inline -->
-      <!-- ============================================ -->
-
-      <!-- MOBILE : header empilé verticalement, plus de flex-wrap problématique -->
+      <!-- HEADER FRISE MOBILE -->
       <div class="md:hidden mb-3 space-y-3">
         <div>
           <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">
@@ -368,7 +463,7 @@
         </div>
       </div>
 
-      <!-- DESKTOP : header inline original -->
+      <!-- HEADER FRISE DESKTOP -->
       <div class="hidden md:flex items-end justify-between mb-3 gap-3">
         <div class="min-w-0 flex-1">
           <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">
@@ -414,15 +509,10 @@
         </template>
       </div>
 
-      <!-- ============================================ -->
-      <!-- FILTRES : MOBILE scroll horizontal / DESKTOP wrap -->
-      <!-- ============================================ -->
-
+      <!-- FILTRES -->
       <div x-show="showFrise" x-cloak class="mb-4 space-y-2">
 
-        <!-- Filtre Équipe (agent) -->
         <div x-show="viewMode === 'agent'">
-          <!-- Mobile -->
           <div class="md:hidden">
             <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">Équipe</p>
             <div class="filter-row-mobile">
@@ -432,7 +522,6 @@
               </template>
             </div>
           </div>
-          <!-- Desktop -->
           <div class="hidden md:flex items-center gap-2 flex-wrap">
             <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Équipe</span>
             <button @click="filterEquipe = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterEquipe === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Toutes</button>
@@ -442,9 +531,7 @@
           </div>
         </div>
 
-        <!-- Filtre Type (machine) -->
         <div x-show="viewMode === 'machine'">
-          <!-- Mobile -->
           <div class="md:hidden">
             <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">Type</p>
             <div class="filter-row-mobile">
@@ -454,7 +541,6 @@
               </template>
             </div>
           </div>
-          <!-- Desktop -->
           <div class="hidden md:flex items-center gap-2 flex-wrap">
             <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Type</span>
             <button @click="filterType = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Tous</button>
@@ -464,9 +550,7 @@
           </div>
         </div>
 
-        <!-- Filtre Statut -->
         <div>
-          <!-- Mobile -->
           <div class="md:hidden">
             <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">Statut</p>
             <div class="filter-row-mobile">
@@ -476,7 +560,6 @@
               <button @click="filterStatut = 'Prévu'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'Prévu' ? 'bg-sky-600 text-white border-sky-600' : 'bg-white border-slate-200 text-sky-700'">Prévu</button>
             </div>
           </div>
-          <!-- Desktop -->
           <div class="hidden md:flex items-center gap-2 flex-wrap">
             <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Statut</span>
             <button @click="filterStatut = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Tous</button>
@@ -490,7 +573,6 @@
           </div>
         </div>
 
-        <!-- Checkbox masquer vides mobile (séparée car prend toute la largeur) -->
         <label class="md:hidden flex items-center gap-2 text-xs text-slate-600 cursor-pointer pt-1">
           <input type="checkbox" x-model="hideEmpty" class="rounded border-slate-300 text-slate-900 focus:ring-slate-500">
           <span x-text="viewMode === 'agent' ? 'Masquer agents sans record' : 'Masquer machines sans record'"></span>
@@ -510,6 +592,7 @@
           <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-slate-100 border border-slate-300"></span>Absent</span>
           <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-violet-100 border border-violet-300"></span>Modifié</span>
           <span class="text-slate-400 ml-2">📅 Congés · ⚕ Maladie · 🎓 Formation · 🌉 Pont</span>
+          <span class="text-slate-400 ml-2">· Clic cellule pour voir tous les records</span>
         </div>
 
         <p class="scroll-hint md:hidden">← Faire défiler horizontalement pour voir les 8 semaines →</p>
@@ -565,11 +648,19 @@
                 </div>
 
                 <template x-for="w in SEMAINES_RANGE" :key="row.entity.rec_id + '-w' + w">
-                  <div class="frise-cell" :class="{
-                    'week-past': w < SEMAINE_COURANTE,
-                    'week-present': w === SEMAINE_COURANTE,
-                    'week-future': w > SEMAINE_COURANTE
-                  }">
+                  <div class="frise-cell"
+                       :class="{
+                         'week-past': w < SEMAINE_COURANTE,
+                         'week-present': w === SEMAINE_COURANTE,
+                         'week-future': w > SEMAINE_COURANTE,
+                         'clickable': row.weeks[w].cellType !== 'empty'
+                       }"
+                       :tabindex="row.weeks[w].cellType !== 'empty' ? '0' : '-1'"
+                       :role="row.weeks[w].cellType !== 'empty' ? 'button' : null"
+                       :aria-label="row.weeks[w].cellType !== 'empty' ? 'Voir détails S' + w : null"
+                       @click="row.weeks[w].cellType !== 'empty' && openDrawer(row, w)"
+                       @keydown.enter="row.weeks[w].cellType !== 'empty' && openDrawer(row, w)"
+                       @keydown.space.prevent="row.weeks[w].cellType !== 'empty' && openDrawer(row, w)">
 
                     <div x-show="row.weeks[w].cellType === 'empty'" class="cell-empty">—</div>
 
@@ -649,7 +740,7 @@
         </p>
 
         <p class="text-xs text-slate-400 mt-3">
-          Vue <span x-text="viewMode === 'agent' ? 'Par agent' : 'Par machine'"></span> · 8 semaines · sticky <span x-text="viewMode === 'agent' ? 'agent' : 'machine'"></span> gauche + header haut · S22 encadrée · passé désaturé (sauf friction). Drawer cellule en Étape 5 · bandeau À surveiller en Étape 6.
+          Vue <span x-text="viewMode === 'agent' ? 'Par agent' : 'Par machine'"></span> · 8 semaines · sticky <span x-text="viewMode === 'agent' ? 'agent' : 'machine'"></span> gauche + header haut · S22 encadrée · Clic cellule = détail complet. Bandeau À surveiller en Étape 6.
         </p>
       </div>
 
@@ -659,7 +750,7 @@
         </p>
       </div>
 
-      <!-- DIAGNOSTIC 1.5 (inchangé) -->
+      <!-- DIAGNOSTIC 1.5 -->
       <div class="mt-8 mb-6">
         <button @click="showDiagnostic = !showDiagnostic" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition">
           <div class="flex items-center gap-3 min-w-0">
@@ -878,6 +969,146 @@
       </p>
     </div>
 
+    <!-- ============================================ -->
+    <!-- DRAWER ÉTAPE 5 — slide-in droit              -->
+    <!-- ============================================ -->
+    <div x-show="drawerOpen"
+         x-cloak
+         x-transition.opacity
+         class="drawer-overlay"
+         @click="closeDrawer()"
+         aria-hidden="true"></div>
+
+    <aside x-show="drawerOpen"
+           x-cloak
+           x-transition:enter="transition ease-out duration-200"
+           x-transition:enter-start="translate-x-full"
+           x-transition:enter-end="translate-x-0"
+           x-transition:leave="transition ease-in duration-150"
+           x-transition:leave-start="translate-x-0"
+           x-transition:leave-end="translate-x-full"
+           class="drawer-panel"
+           role="dialog"
+           aria-modal="true"
+           :aria-label="drawerContext.entity ? ('Détails ' + (drawerContext.entityType === 'agent' ? 'agent ' + entityDisplayName(drawerContext.entity, 'agent') : 'machine ' + entityDisplayName(drawerContext.entity, 'machine'))) : 'Détails cellule'">
+
+      <div class="drawer-header">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <p class="text-[10px] uppercase tracking-wider text-slate-500 font-medium" x-text="drawerContext.entityType === 'agent' ? 'Agent' : 'Machine'"></p>
+            <h3 class="text-base font-semibold text-slate-900 mt-0.5 truncate"
+                x-text="drawerContext.entity ? entityDisplayName(drawerContext.entity, drawerContext.entityType) : ''"></h3>
+            <p class="text-xs text-slate-500 mt-0.5" x-show="drawerContext.entityType === 'agent' && drawerContext.entity"
+               x-text="drawerContext.entity ? drawerContext.entity.equipe : ''"></p>
+            <p class="text-xs text-slate-500 mt-0.5" x-show="drawerContext.entityType === 'machine' && drawerContext.entity"
+               x-text="drawerContext.entity ? machineType(drawerContext.entity) : ''"></p>
+          </div>
+          <button @click="closeDrawer()"
+                  class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition"
+                  aria-label="Fermer">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="mt-3 flex items-center gap-2 text-xs">
+          <span class="px-2 py-0.5 rounded bg-slate-900 text-white font-semibold" x-text="'S' + drawerContext.week"></span>
+          <span class="text-slate-600">lun. <span x-text="drawerContext.mondayDate"></span></span>
+          <span class="text-slate-400">·</span>
+          <span class="text-slate-600" x-text="drawerContext.records.length + ' record' + (drawerContext.records.length > 1 ? 's' : '')"></span>
+          <span x-show="drawerContext.week === SEMAINE_COURANTE" class="ml-auto text-sky-700 font-medium">en cours</span>
+          <span x-show="drawerContext.week < SEMAINE_COURANTE" class="ml-auto text-slate-400">passé</span>
+          <span x-show="drawerContext.week > SEMAINE_COURANTE" class="ml-auto text-slate-500">à venir</span>
+        </div>
+      </div>
+
+      <div class="drawer-body">
+
+        <!-- Bandeau collision si détectée -->
+        <div x-show="drawerHasCollision" class="drawer-collision-banner">
+          <span>⚠</span>
+          <span><strong>Collision détectée :</strong> deux statuts contradictoires sur le même créneau. Les deux records ci-dessous sont actifs simultanément.</span>
+        </div>
+
+        <p x-show="drawerContext.records.length === 0" class="text-sm text-slate-500 italic">
+          Aucun record sur cette cellule.
+        </p>
+
+        <template x-for="(rec, idx) in drawerContext.records" :key="rec.rec_id">
+          <div class="drawer-record" :class="drawerIsCollisionRecord(rec) ? 'collision' : ''">
+
+            <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <span class="drawer-record-statut" :class="drawerStatutClass(rec.statut)" x-text="rec.statut"></span>
+              <div class="flex items-center gap-1.5 text-xs text-slate-500">
+                <span x-show="rec.creneau" class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200" x-text="rec.creneau"></span>
+                <span x-show="!rec.creneau" class="px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-400 italic">sans créneau</span>
+                <span x-text="formatDateFr(rec.date)"></span>
+              </div>
+            </div>
+
+            <div class="text-sm text-slate-900 font-medium mb-2" x-show="rec.tache" x-text="rec.tache"></div>
+            <div class="text-sm text-slate-400 italic mb-2" x-show="!rec.tache || rec.tache.trim() === ''">Aucune tâche renseignée</div>
+
+            <div class="text-xs text-slate-600 space-y-1 mb-2">
+              <div x-show="rec.machine_nom" class="flex gap-2">
+                <span class="text-slate-400 w-16 flex-shrink-0">Machine</span>
+                <span class="font-medium text-slate-700" x-text="rec.machine_nom"></span>
+              </div>
+              <div x-show="!rec.machine_nom" class="flex gap-2">
+                <span class="text-slate-400 w-16 flex-shrink-0">Machine</span>
+                <span class="text-slate-400 italic">aucune (absence / formation / pont)</span>
+              </div>
+              <div x-show="rec.agent_nom" class="flex gap-2">
+                <span class="text-slate-400 w-16 flex-shrink-0">Agent</span>
+                <span class="font-medium text-slate-700" x-text="rec.agent_nom"></span>
+              </div>
+              <div x-show="rec.statut === 'Modifié' && rec.remplacement_nom" class="flex gap-2">
+                <span class="text-slate-400 w-16 flex-shrink-0">Couvre</span>
+                <span class="badge-modifie" x-text="'↺ ' + rec.remplacement_nom"></span>
+              </div>
+            </div>
+
+            <div x-show="rec.commentaire_metier && rec.commentaire_metier.trim() !== ''"
+                 class="text-xs text-slate-700 bg-slate-50 border-l-2 border-slate-300 px-3 py-2 mt-2 rounded-r"
+                 x-text="'« ' + rec.commentaire_metier + ' »'"></div>
+
+            <div x-show="!rec.commentaire_metier || rec.commentaire_metier.trim() === ''"
+                 class="text-xs text-slate-400 italic mt-2">
+              Pas de commentaire métier.
+            </div>
+
+            <div class="mt-3 pt-2 border-t border-slate-100 flex items-center gap-2 flex-wrap text-xs">
+              <span class="text-slate-400 font-mono text-[10px]" x-text="rec.rec_id"></span>
+              <span class="text-slate-400">·</span>
+              <span class="text-slate-400" x-text="'#' + rec.id_planning"></span>
+              <div class="ml-auto flex gap-1.5">
+                <button x-show="drawerContext.entityType === 'agent' && rec.machine_rec_id"
+                        @click="pivotToMachine(rec.machine_rec_id, drawerContext.week)"
+                        class="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 transition">
+                  Voir machine →
+                </button>
+                <button x-show="drawerContext.entityType === 'machine' && rec.agent_rec_id"
+                        @click="pivotToAgent(rec.agent_rec_id, drawerContext.week)"
+                        class="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-slate-700 transition">
+                  Voir agent →
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="drawer-footer">
+        <button @click="closeDrawer()"
+                class="text-xs px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-100 text-slate-700">
+          Fermer (Échap)
+        </button>
+        <span class="ml-auto text-[10px] text-slate-400 self-center">
+          Records affichés dans l'ordre Airtable, sans priorité statut.
+        </span>
+      </div>
+    </aside>
+
   </main>
 
   <script>
@@ -891,13 +1122,22 @@
         lastSync: '',
         showRaw: false,
         showDiagnostic: false,
-        // RETOUR état d'origine : dépliée partout, point.
         showFrise: true,
         hideEmpty: true,
         filterEquipe: null,
         filterType: null,
         filterStatut: null,
         viewMode: 'agent',
+
+        // === Étape 5 : state drawer ===
+        drawerOpen: false,
+        drawerContext: {
+          entityType: null,  // 'agent' | 'machine'
+          entity: null,
+          week: null,
+          records: [],
+          mondayDate: ''
+        },
 
         SEMAINE_COURANTE: 22,
         SEMAINES_RANGE: [18, 19, 20, 21, 22, 23, 24, 25],
@@ -929,6 +1169,130 @@
           } finally {
             this.loading = false;
           }
+        },
+
+        // === Étape 5 : raccourcis clavier ===
+        initKeyboardShortcuts() {
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.drawerOpen) {
+              this.closeDrawer();
+            }
+          });
+        },
+
+        // === Étape 5 : ouverture drawer ===
+        openDrawer(row, week) {
+          // Récupérer les records bruts de la cellule (sans la priorité)
+          const indexByEntity = this.viewMode === 'agent' ? this.byAgentByWeek : this.byMachineByWeek;
+          const rawRecords = (indexByEntity[row.entity.rec_id] && indexByEntity[row.entity.rec_id][week]) || [];
+
+          // Tri stable : Matin → Après-midi → sans créneau, ordre Airtable préservé à l'intérieur
+          const sorted = [...rawRecords].sort((a, b) => {
+            const orderA = this.creneauOrder(a.creneau);
+            const orderB = this.creneauOrder(b.creneau);
+            if (orderA !== orderB) return orderA - orderB;
+            return 0; // ordre Airtable
+          });
+
+          this.drawerContext = {
+            entityType: this.viewMode,
+            entity: row.entity,
+            week,
+            records: sorted,
+            mondayDate: this.mondayLabelForWeek(week)
+          };
+          this.drawerOpen = true;
+          document.body.classList.add('drawer-open');
+        },
+
+        closeDrawer() {
+          this.drawerOpen = false;
+          document.body.classList.remove('drawer-open');
+        },
+
+        creneauOrder(creneau) {
+          if (creneau === 'Matin') return 0;
+          if (creneau === 'Après-midi') return 1;
+          return 2; // sans créneau (absences/formations)
+        },
+
+        // === Étape 5 : pivot vers entité opposée ===
+        pivotToMachine(machineRecId, week) {
+          const machine = this.machines.find(m => m.rec_id === machineRecId);
+          if (!machine) return;
+          // Construire la cellule machine pour cette semaine
+          const rawRecords = (this.byMachineByWeek[machineRecId] && this.byMachineByWeek[machineRecId][week]) || [];
+          const sorted = [...rawRecords].sort((a, b) => this.creneauOrder(a.creneau) - this.creneauOrder(b.creneau));
+          this.drawerContext = {
+            entityType: 'machine',
+            entity: machine,
+            week,
+            records: sorted,
+            mondayDate: this.mondayLabelForWeek(week)
+          };
+          // viewMode reste tel quel (l'utilisateur peut revenir à la frise inchangée)
+        },
+
+        pivotToAgent(agentRecId, week) {
+          const agent = this.agents.find(a => a.rec_id === agentRecId);
+          if (!agent) return;
+          const rawRecords = (this.byAgentByWeek[agentRecId] && this.byAgentByWeek[agentRecId][week]) || [];
+          const sorted = [...rawRecords].sort((a, b) => this.creneauOrder(a.creneau) - this.creneauOrder(b.creneau));
+          this.drawerContext = {
+            entityType: 'agent',
+            entity: agent,
+            week,
+            records: sorted,
+            mondayDate: this.mondayLabelForWeek(week)
+          };
+        },
+
+        // === Étape 5 : helpers d'affichage drawer ===
+        entityDisplayName(entity, type) {
+          if (!entity) return '—';
+          if (type === 'agent') return ((entity.prenom || '') + ' ' + (entity.nom || '')).trim() || '—';
+          return entity.nom || entity.reference || '—';
+        },
+
+        drawerStatutClass(statut) {
+          switch (statut) {
+            case 'Réalisé': return 'statut-realise';
+            case 'Prévu':   return 'statut-prevu';
+            case 'Absent':  return 'statut-absent';
+            case 'Modifié': return 'statut-modifie';
+            default:        return 'statut-prevu';
+          }
+        },
+
+        formatDateFr(iso) {
+          if (!iso) return '—';
+          const d = new Date(iso);
+          if (isNaN(d)) return iso;
+          return d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
+        },
+
+        // Collision = 2+ records sur le même créneau avec statuts différents
+        get drawerHasCollision() {
+          if (!this.drawerContext.records || this.drawerContext.records.length < 2) return false;
+          const byCreneau = {};
+          this.drawerContext.records.forEach(r => {
+            const k = r.creneau || '__sans__';
+            if (!byCreneau[k]) byCreneau[k] = [];
+            byCreneau[k].push(r);
+          });
+          return Object.values(byCreneau).some(group => {
+            if (group.length < 2) return false;
+            const statuts = new Set(group.map(r => r.statut));
+            return statuts.size > 1;
+          });
+        },
+
+        drawerIsCollisionRecord(rec) {
+          if (!this.drawerHasCollision) return false;
+          const sameCreneau = this.drawerContext.records.filter(r => (r.creneau || '__sans__') === (rec.creneau || '__sans__'));
+          if (sameCreneau.length < 2) return false;
+          const statuts = new Set(sameCreneau.map(r => r.statut));
+          return statuts.size > 1;
         },
 
         setViewMode(mode) {
@@ -1189,11 +1553,12 @@
           if (!p) return null;
           if (p.motif_absence) return p.motif_absence;
           const c = (p.commentaire_metier || '').toLowerCase();
+          const t = (p.tache || '').toLowerCase();
           if (p.statut !== 'Absent') return null;
-          if (c.includes('congé') || c.includes('rtt')) return 'Congés';
+          if (c.includes('congé') || c.includes('rtt') || t.includes('congé')) return 'Congés';
           if (c.includes('maladie') || c.includes('arrêt')) return 'Maladie';
-          if (c.includes('formation') || c.includes('stage') || c.includes('b1v')) return 'Formation';
-          if (c.includes('pont')) return 'Pont';
+          if (c.includes('formation') || c.includes('stage') || c.includes('b1v') || t.includes('formation')) return 'Formation';
+          if (c.includes('pont') || t.includes('pont')) return 'Pont';
           return null;
         },
 
