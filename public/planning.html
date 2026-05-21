@@ -16,22 +16,22 @@
       50% { opacity: .4; }
     }
 
-    /* === Frise 8 semaines === */
+    /* === Frise 8 semaines — fix mobile === */
     .frise-scroll-container {
+      width: 100%;
+      max-width: 100%;
       overflow-x: auto;
       overflow-y: visible;
+      -webkit-overflow-scrolling: touch;
       border: 1px solid rgb(226 232 240);
       border-radius: 12px;
       background: white;
-      max-width: 100%;
     }
-    /* Mode agent : colonne sticky 200px */
     .frise-grid {
       display: grid;
       grid-template-columns: 200px repeat(8, 180px);
       min-width: max-content;
     }
-    /* Mode machine : colonne sticky 240px pour ne plus tronquer */
     .frise-grid.view-machine {
       grid-template-columns: 240px repeat(8, 180px);
     }
@@ -44,7 +44,21 @@
       }
     }
 
-    .frise-row-wrapper { display: contents; }
+    /* CHANGED : display:contents retiré, on utilise une grille subgrid-like
+       en posant manuellement les enfants dans la grid via boucle plate.
+       L'enfant `.frise-row-wrapper` est désormais un sub-container CSS Grid
+       qui hérite des colonnes du parent via subgrid (fallback sans subgrid). */
+    .frise-row-wrapper {
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-column: 1 / -1;
+    }
+    /* Fallback navigateurs sans support subgrid (Safari iOS ancien) */
+    @supports not (grid-template-columns: subgrid) {
+      .frise-row-wrapper {
+        display: contents;
+      }
+    }
 
     .frise-th {
       position: sticky;
@@ -71,6 +85,7 @@
       .frise-agent-cell {
         min-height: 72px;
         padding: 0.5rem;
+        gap: 0.5rem;
       }
     }
 
@@ -224,6 +239,22 @@
       color: white;
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
+
+    /* CTA "Voir la frise" mobile (état replié) */
+    .frise-cta-mobile {
+      background: linear-gradient(135deg, rgb(15 23 42), rgb(30 41 59));
+      color: white;
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition: transform .15s ease;
+    }
+    .frise-cta-mobile:active {
+      transform: scale(0.98);
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen antialiased">
@@ -362,10 +393,9 @@
         </template>
       </div>
 
-      <!-- FILTRES -->
+      <!-- FILTRES (uniquement si frise dépliée) -->
       <div x-show="showFrise" x-cloak class="mb-4 space-y-2">
 
-        <!-- Filtre Équipe (agent only) -->
         <div x-show="viewMode === 'agent'" class="flex items-center gap-2 flex-wrap">
           <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Équipe</span>
           <button @click="filterEquipe = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterEquipe === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Toutes</button>
@@ -374,7 +404,6 @@
           </template>
         </div>
 
-        <!-- Filtre Type machine (machine only) -->
         <div x-show="viewMode === 'machine'" class="flex items-center gap-2 flex-wrap">
           <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Type</span>
           <button @click="filterType = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Tous</button>
@@ -414,7 +443,6 @@
 
         <p class="scroll-hint md:hidden">← Faire défiler horizontalement pour voir les 8 semaines →</p>
 
-        <!-- FRISE 8 SEMAINES -->
         <div class="frise-scroll-container">
           <div class="frise-grid" :class="viewMode === 'machine' ? 'view-machine' : ''">
 
@@ -438,7 +466,6 @@
             <template x-for="row in filteredFrise" :key="row.entity.rec_id">
               <div class="frise-row-wrapper">
 
-                <!-- Colonne sticky : agent ou machine (icône machine RETIRÉE pour gagner de la place) -->
                 <div class="frise-agent-cell">
                   <template x-if="viewMode === 'agent'">
                     <div class="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-semibold"
@@ -555,13 +582,31 @@
         </p>
       </div>
 
-      <div x-show="!showFrise" x-cloak class="bg-slate-100 border border-slate-200 rounded-lg p-4 text-center">
-        <p class="text-sm text-slate-600">
-          Frise repliée — <span class="text-amber-700 font-semibold" x-text="friseStats.frictionTotal"></span> friction<span x-show="friseStats.frictionTotal > 1">s</span> sur 8 semaines · <span class="text-sky-700 font-semibold" x-text="friseStats.frictionS22"></span> sur S22
-        </p>
+      <!-- ÉTAT REPLIÉ : CTA mobile riche + texte simple desktop -->
+      <div x-show="!showFrise" x-cloak>
+        <!-- Mobile : CTA tappable -->
+        <div @click="showFrise = true" class="md:hidden frise-cta-mobile">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-400 font-medium">Frise repliée</p>
+              <p class="text-base font-semibold mt-1">Toucher pour voir le planning</p>
+            </div>
+            <span class="text-3xl text-slate-400">→</span>
+          </div>
+          <div class="text-xs text-slate-300 mt-2 pt-2 border-t border-slate-700">
+            <span class="text-amber-300 font-medium" x-text="friseStatsLite.frictionTotal"></span> friction<span x-show="friseStatsLite.frictionTotal > 1">s</span> sur 8 semaines ·
+            <span class="text-sky-300 font-medium" x-text="friseStatsLite.frictionS22"></span> sur S22
+          </div>
+        </div>
+        <!-- Desktop : ancienne barre slim -->
+        <div class="hidden md:block bg-slate-100 border border-slate-200 rounded-lg p-4 text-center">
+          <p class="text-sm text-slate-600">
+            Frise repliée — <span class="text-amber-700 font-semibold" x-text="friseStatsLite.frictionTotal"></span> friction<span x-show="friseStatsLite.frictionTotal > 1">s</span> sur 8 semaines · <span class="text-sky-700 font-semibold" x-text="friseStatsLite.frictionS22"></span> sur S22
+          </p>
+        </div>
       </div>
 
-      <!-- DIAGNOSTIC 1.5 (replié, inchangé) -->
+      <!-- DIAGNOSTIC 1.5 (inchangé) -->
       <div class="mt-8 mb-6">
         <button @click="showDiagnostic = !showDiagnostic" class="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition">
           <div class="flex items-center gap-3 min-w-0">
@@ -793,7 +838,8 @@
         lastSync: '',
         showRaw: false,
         showDiagnostic: false,
-        showFrise: true,
+        // CHANGED : frise repliée sur mobile pour éviter compute + render coûteux à l'init
+        showFrise: typeof window !== 'undefined' ? window.innerWidth >= 768 : true,
         hideEmpty: true,
         filterEquipe: null,
         filterType: null,
@@ -843,7 +889,6 @@
           return [...new Set(this.agents.map(a => a.equipe).filter(Boolean))].sort();
         },
 
-        // === Type machine : champ API si dispo, sinon dérivé du nom === //
         machineType(machine) {
           if (!machine) return '—';
           if (machine.type && machine.type.trim() !== '') return machine.type;
@@ -941,7 +986,9 @@
           return rows;
         },
 
+        // CHANGED : si frise repliée → retourne tableau vide, on ne déclenche pas le calcul lourd
         get frise() {
+          if (!this.showFrise) return [];
           if (this.viewMode === 'agent') {
             if (!this.agents.length) return [];
             return this.buildFriseForEntities(this.agents, this.byAgentByWeek);
@@ -949,6 +996,23 @@
             if (!this.machines.length) return [];
             return this.buildFriseForEntities(this.machines, this.byMachineByWeek);
           }
+        },
+
+        // NEW : compteur léger pour le bandeau replié, sans déclencher tout buildFriseForEntities
+        get friseStatsLite() {
+          // On compte friction sur tous les records, indépendamment du viewMode et de la frise complète
+          const friction = this.plannings.filter(p => p.statut === 'Modifié' || p.statut === 'Absent');
+          const frictionEntities = new Set();
+          const frictionS22Entities = new Set();
+          friction.forEach(p => {
+            const key = this.viewMode === 'agent' ? p.agent_rec_id : p.machine_rec_id;
+            if (!key) return;
+            const w = this.getISOWeek(p.date);
+            if (!this.SEMAINES_RANGE.includes(w)) return;
+            frictionEntities.add(key);
+            if (w === this.SEMAINE_COURANTE) frictionS22Entities.add(key);
+          });
+          return { frictionTotal: frictionEntities.size, frictionS22: frictionS22Entities.size };
         },
 
         get filteredFrise() {
@@ -1108,7 +1172,6 @@
           return null;
         },
 
-        // Badge couvre adapté au mode : en vue machine, on dit "remplace X"
         couvreLabel(nom) {
           if (!nom) return '';
           if (this.viewMode === 'machine') return '↺ remplace ' + nom;
