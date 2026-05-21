@@ -259,7 +259,7 @@
     }
 
     /* ============================================
-       DRAWER ÉTAPE 5.1
+       DRAWER ÉTAPE 5.2
        ============================================ */
     .drawer-overlay {
       position: fixed;
@@ -316,7 +316,6 @@
     }
     .drawer-record:last-child { margin-bottom: 0; }
 
-    /* Étape 5.1 : badge date dominant en haut-gauche */
     .drawer-record-date {
       display: inline-flex;
       align-items: baseline;
@@ -355,6 +354,7 @@
     .drawer-record-statut.statut-absent  { background: rgb(241 245 249); border-color: rgb(203 213 225); color: rgb(71 85 105); }
     .drawer-record-statut.statut-modifie { background: rgb(245 243 255); border-color: rgb(196 181 253); color: rgb(91 33 182); }
 
+    /* Collision = bordure orange (Absent vs non-Absent) */
     .drawer-record.collision {
       border-left: 3px solid rgb(245 158 11);
     }
@@ -367,8 +367,30 @@
       font-size: 0.75rem;
       margin-bottom: 0.75rem;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 0.5rem;
+    }
+
+    /* Étape 5.2 : surcharge = bordure bleue (charge à surveiller) */
+    .drawer-record.overload {
+      border-left: 3px solid rgb(59 130 246);
+    }
+    .drawer-overload-banner {
+      background: rgb(219 234 254);
+      border: 1px solid rgb(147 197 253);
+      color: rgb(30 58 138);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    /* Si un record est à la fois collision ET surcharge, collision prime (gauche orange) */
+    .drawer-record.collision.overload {
+      border-left: 3px solid rgb(245 158 11);
     }
   </style>
 </head>
@@ -995,7 +1017,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- DRAWER ÉTAPE 5.1 — slide-in droit            -->
+    <!-- DRAWER ÉTAPE 5.2 — slide-in droit            -->
     <!-- ============================================ -->
     <div x-show="drawerOpen"
          x-cloak
@@ -1049,10 +1071,23 @@
 
       <div class="drawer-body">
 
-        <!-- Bandeau collision si détectée -->
+        <!-- Étape 5.2 : 2 bandeaux distincts -->
         <div x-show="drawerHasCollision" class="drawer-collision-banner">
-          <span>⚠</span>
-          <span><strong>Collision détectée :</strong> deux statuts contradictoires sur le même créneau le même jour. Les records concernés sont marqués d'une bordure orange.</span>
+          <span class="flex-shrink-0">⚠</span>
+          <span><strong>Collision détectée :</strong> un statut Absent coexiste avec un autre statut sur le même créneau du même jour. Situation physiquement impossible à résoudre par un seul agent.</span>
+        </div>
+
+        <div x-show="drawerHasOverload && !drawerHasCollision" class="drawer-overload-banner">
+          <span class="flex-shrink-0">⚡</span>
+          <span><strong x-text="drawerContext.entityType === 'agent' ? 'Surcharge agent :' : 'Surcharge machine :'"></strong>
+                <span x-show="drawerContext.entityType === 'agent'">deux affectations sur des machines différentes au même créneau. Charge à vérifier.</span>
+                <span x-show="drawerContext.entityType === 'machine'">deux agents différents sur le même créneau. Affectations à clarifier.</span>
+          </span>
+        </div>
+
+        <div x-show="drawerHasOverload && drawerHasCollision" class="drawer-overload-banner">
+          <span class="flex-shrink-0">⚡</span>
+          <span><strong>Surcharge en plus de la collision :</strong> d'autres affectations chevauchent sur le créneau (cibles différentes).</span>
         </div>
 
         <p x-show="drawerContext.records.length === 0" class="text-sm text-slate-500 italic">
@@ -1060,9 +1095,12 @@
         </p>
 
         <template x-for="(rec, idx) in drawerContext.records" :key="rec.rec_id">
-          <div class="drawer-record" :class="drawerIsCollisionRecord(rec) ? 'collision' : ''">
+          <div class="drawer-record"
+               :class="{
+                 'collision': drawerIsCollisionRecord(rec),
+                 'overload': drawerIsOverloadRecord(rec) && !drawerIsCollisionRecord(rec)
+               }">
 
-            <!-- Étape 5.1 : date dominante en haut-gauche -->
             <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="drawer-record-date">
@@ -1158,7 +1196,6 @@
         filterStatut: null,
         viewMode: 'agent',
 
-        // === Étape 5 : state drawer ===
         drawerOpen: false,
         drawerContext: {
           entityType: null,
@@ -1208,13 +1245,10 @@
           });
         },
 
-        // === Étape 5.1 : tri primaire par DATE, secondaire par CRENEAU ===
         sortDrawerRecords(records) {
           return [...records].sort((a, b) => {
-            // 1. Date ASC (string YYYY-MM-DD, comparaison lexico = chrono)
             const dateCmp = (a.date || '').localeCompare(b.date || '');
             if (dateCmp !== 0) return dateCmp;
-            // 2. Créneau : Matin < Après-midi < sans
             return this.creneauOrder(a.creneau) - this.creneauOrder(b.creneau);
           });
         },
@@ -1270,7 +1304,6 @@
           };
         },
 
-        // === Étape 5.1 : helpers date drawer ===
         entityDisplayName(entity, type) {
           if (!entity) return '—';
           if (type === 'agent') return ((entity.prenom || '') + ' ' + (entity.nom || '')).trim() || '—';
@@ -1301,31 +1334,67 @@
           return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
         },
 
-        // === Étape 5.1 : collision = même DATE + même CRENEAU + statuts différents ===
-        get drawerHasCollision() {
-          if (!this.drawerContext.records || this.drawerContext.records.length < 2) return false;
+        // === Étape 5.2 : analyse groupée des records (collision + surcharge) ===
+        // Groupe par (date + creneau). Pour chaque groupe de 2+ records :
+        // - Collision si statuts incluent Absent + autre chose
+        // - Surcharge si statuts compatibles (pas Absent) MAIS cibles différentes
+        //   (machine_rec_id en vue agent, agent_rec_id en vue machine)
+        get drawerGroupAnalysis() {
+          const result = { collisionRecIds: new Set(), overloadRecIds: new Set() };
+          const records = this.drawerContext.records || [];
+          if (records.length < 2) return result;
+
           const groups = {};
-          this.drawerContext.records.forEach(r => {
+          records.forEach(r => {
             const k = (r.date || '__nodate__') + '__' + (r.creneau || '__nocreneau__');
             if (!groups[k]) groups[k] = [];
             groups[k].push(r);
           });
-          return Object.values(groups).some(g => {
-            if (g.length < 2) return false;
-            const statuts = new Set(g.map(r => r.statut));
-            return statuts.size > 1;
+
+          const entityType = this.drawerContext.entityType;
+
+          Object.values(groups).forEach(g => {
+            if (g.length < 2) return;
+            const statuts = g.map(r => r.statut);
+            const hasAbsent = statuts.includes('Absent');
+            const hasNonAbsent = statuts.some(s => s !== 'Absent');
+
+            if (hasAbsent && hasNonAbsent) {
+              // Collision : Absent + autre statut sur le même créneau/jour
+              g.forEach(r => result.collisionRecIds.add(r.rec_id));
+              return;
+            }
+
+            // Pas de collision Absent. Check surcharge : cibles différentes ?
+            // Vue agent : cible = machine_rec_id. Surcharge si 2+ machines distinctes (toutes non null).
+            // Vue machine : cible = agent_rec_id. Surcharge si 2+ agents distincts (tous non null).
+            const cibleField = entityType === 'agent' ? 'machine_rec_id' : 'agent_rec_id';
+            const cibles = g.map(r => r[cibleField]).filter(c => c);
+            const cibleSet = new Set(cibles);
+
+            // Si tous les records du groupe ont une cible et qu'il y en a au moins 2 distinctes → surcharge
+            if (cibles.length === g.length && cibleSet.size >= 2) {
+              g.forEach(r => result.overloadRecIds.add(r.rec_id));
+            }
           });
+
+          return result;
+        },
+
+        get drawerHasCollision() {
+          return this.drawerGroupAnalysis.collisionRecIds.size > 0;
+        },
+
+        get drawerHasOverload() {
+          return this.drawerGroupAnalysis.overloadRecIds.size > 0;
         },
 
         drawerIsCollisionRecord(rec) {
-          if (!this.drawerHasCollision) return false;
-          const sameGroup = this.drawerContext.records.filter(r =>
-            (r.date || '__nodate__') === (rec.date || '__nodate__') &&
-            (r.creneau || '__nocreneau__') === (rec.creneau || '__nocreneau__')
-          );
-          if (sameGroup.length < 2) return false;
-          const statuts = new Set(sameGroup.map(r => r.statut));
-          return statuts.size > 1;
+          return this.drawerGroupAnalysis.collisionRecIds.has(rec.rec_id);
+        },
+
+        drawerIsOverloadRecord(rec) {
+          return this.drawerGroupAnalysis.overloadRecIds.has(rec.rec_id);
         },
 
         setViewMode(mode) {
