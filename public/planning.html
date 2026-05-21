@@ -16,7 +16,7 @@
       50% { opacity: .4; }
     }
 
-    /* === Frise 8 semaines — fix mobile === */
+    /* === Frise 8 semaines === */
     .frise-scroll-container {
       width: 100%;
       max-width: 100%;
@@ -26,6 +26,12 @@
       border: 1px solid rgb(226 232 240);
       border-radius: 12px;
       background: white;
+    }
+    @media (max-width: 768px) {
+      .frise-scroll-container {
+        /* Contrainte hard pour éviter le déversement vertical */
+        max-width: calc(100vw - 2rem);
+      }
     }
     .frise-grid {
       display: grid;
@@ -44,20 +50,9 @@
       }
     }
 
-    /* CHANGED : display:contents retiré, on utilise une grille subgrid-like
-       en posant manuellement les enfants dans la grid via boucle plate.
-       L'enfant `.frise-row-wrapper` est désormais un sub-container CSS Grid
-       qui hérite des colonnes du parent via subgrid (fallback sans subgrid). */
+    /* RETOUR au comportement v1 : display:contents simple, qui marchait */
     .frise-row-wrapper {
-      display: grid;
-      grid-template-columns: subgrid;
-      grid-column: 1 / -1;
-    }
-    /* Fallback navigateurs sans support subgrid (Safari iOS ancien) */
-    @supports not (grid-template-columns: subgrid) {
-      .frise-row-wrapper {
-        display: contents;
-      }
+      display: contents;
     }
 
     .frise-th {
@@ -240,20 +235,33 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
-    /* CTA "Voir la frise" mobile (état replié) */
-    .frise-cta-mobile {
-      background: linear-gradient(135deg, rgb(15 23 42), rgb(30 41 59));
-      color: white;
-      border-radius: 12px;
-      padding: 1.25rem;
+    /* === FIX H3 PROBLEMATIQUE === */
+    /* Le titre frise ne wrap plus mot par mot : structure verticale propre sur mobile */
+    .frise-title-block {
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
-      cursor: pointer;
-      transition: transform .15s ease;
+      gap: 0.25rem;
+      min-width: 0;
     }
-    .frise-cta-mobile:active {
-      transform: scale(0.98);
+    .frise-title-line {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .frise-title-text {
+      font-size: 1rem;
+      font-weight: 600;
+      color: rgb(15 23 42);
+      line-height: 1.3;
+      /* Ne s'éclate pas en colonne sur mobile */
+      white-space: normal;
+      word-break: keep-all;
+    }
+    @media (max-width: 480px) {
+      .frise-title-text {
+        font-size: 0.875rem;
+      }
     }
   </style>
 </head>
@@ -346,18 +354,19 @@
         </div>
       </div>
 
-      <!-- HEADER FRISE + TOGGLE -->
-      <div class="flex items-end justify-between mb-3 flex-wrap gap-2">
-        <div class="min-w-0 flex-1">
+      <!-- HEADER FRISE + TOGGLE — VERSION FIXED -->
+      <div class="flex items-end justify-between mb-3 flex-wrap gap-3">
+        <div class="frise-title-block min-w-0 flex-1">
           <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">
             Frise temporelle · vue <span x-text="viewMode === 'agent' ? 'Par agent' : 'Par machine'"></span>
           </p>
-          <h3 class="text-base font-semibold text-slate-900 mt-0.5 flex items-center gap-2 flex-wrap">
-            <span>S18 → S25 · 27 avril → 19 juin 2026</span>
+          <div class="frise-title-line">
+            <span class="frise-title-text">S18 → S25</span>
             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200 whitespace-nowrap">8 semaines</span>
-          </h3>
+          </div>
+          <p class="text-xs text-slate-500">27 avril → 19 juin 2026</p>
         </div>
-        <div class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-2 flex-wrap">
           <div class="view-toggle">
             <button @click="setViewMode('agent')" :class="viewMode === 'agent' ? 'active' : ''">
               <span>👤</span><span>Par agent</span>
@@ -393,7 +402,6 @@
         </template>
       </div>
 
-      <!-- FILTRES (uniquement si frise dépliée) -->
       <div x-show="showFrise" x-cloak class="mb-4 space-y-2">
 
         <div x-show="viewMode === 'agent'" class="flex items-center gap-2 flex-wrap">
@@ -582,28 +590,11 @@
         </p>
       </div>
 
-      <!-- ÉTAT REPLIÉ : CTA mobile riche + texte simple desktop -->
-      <div x-show="!showFrise" x-cloak>
-        <!-- Mobile : CTA tappable -->
-        <div @click="showFrise = true" class="md:hidden frise-cta-mobile">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="text-xs uppercase tracking-wider text-slate-400 font-medium">Frise repliée</p>
-              <p class="text-base font-semibold mt-1">Toucher pour voir le planning</p>
-            </div>
-            <span class="text-3xl text-slate-400">→</span>
-          </div>
-          <div class="text-xs text-slate-300 mt-2 pt-2 border-t border-slate-700">
-            <span class="text-amber-300 font-medium" x-text="friseStatsLite.frictionTotal"></span> friction<span x-show="friseStatsLite.frictionTotal > 1">s</span> sur 8 semaines ·
-            <span class="text-sky-300 font-medium" x-text="friseStatsLite.frictionS22"></span> sur S22
-          </div>
-        </div>
-        <!-- Desktop : ancienne barre slim -->
-        <div class="hidden md:block bg-slate-100 border border-slate-200 rounded-lg p-4 text-center">
-          <p class="text-sm text-slate-600">
-            Frise repliée — <span class="text-amber-700 font-semibold" x-text="friseStatsLite.frictionTotal"></span> friction<span x-show="friseStatsLite.frictionTotal > 1">s</span> sur 8 semaines · <span class="text-sky-700 font-semibold" x-text="friseStatsLite.frictionS22"></span> sur S22
-          </p>
-        </div>
+      <!-- État replié : bandeau simple identique mobile et desktop -->
+      <div x-show="!showFrise" x-cloak class="bg-slate-100 border border-slate-200 rounded-lg p-4 text-center">
+        <p class="text-sm text-slate-600">
+          Frise repliée — <span class="text-amber-700 font-semibold" x-text="friseStats.frictionTotal"></span> friction<span x-show="friseStats.frictionTotal > 1">s</span> sur 8 semaines · <span class="text-sky-700 font-semibold" x-text="friseStats.frictionS22"></span> sur S22
+        </p>
       </div>
 
       <!-- DIAGNOSTIC 1.5 (inchangé) -->
@@ -838,7 +829,7 @@
         lastSync: '',
         showRaw: false,
         showDiagnostic: false,
-        // CHANGED : frise repliée sur mobile pour éviter compute + render coûteux à l'init
+        // Frise repliée sur mobile par défaut (économie de rendu initial)
         showFrise: typeof window !== 'undefined' ? window.innerWidth >= 768 : true,
         hideEmpty: true,
         filterEquipe: null,
@@ -986,7 +977,7 @@
           return rows;
         },
 
-        // CHANGED : si frise repliée → retourne tableau vide, on ne déclenche pas le calcul lourd
+        // CRITIQUE : si frise repliée, on retourne vide → pas de calcul de buildCellForWeek
         get frise() {
           if (!this.showFrise) return [];
           if (this.viewMode === 'agent') {
@@ -996,23 +987,6 @@
             if (!this.machines.length) return [];
             return this.buildFriseForEntities(this.machines, this.byMachineByWeek);
           }
-        },
-
-        // NEW : compteur léger pour le bandeau replié, sans déclencher tout buildFriseForEntities
-        get friseStatsLite() {
-          // On compte friction sur tous les records, indépendamment du viewMode et de la frise complète
-          const friction = this.plannings.filter(p => p.statut === 'Modifié' || p.statut === 'Absent');
-          const frictionEntities = new Set();
-          const frictionS22Entities = new Set();
-          friction.forEach(p => {
-            const key = this.viewMode === 'agent' ? p.agent_rec_id : p.machine_rec_id;
-            if (!key) return;
-            const w = this.getISOWeek(p.date);
-            if (!this.SEMAINES_RANGE.includes(w)) return;
-            frictionEntities.add(key);
-            if (w === this.SEMAINE_COURANTE) frictionS22Entities.add(key);
-          });
-          return { frictionTotal: frictionEntities.size, frictionS22: frictionS22Entities.size };
         },
 
         get filteredFrise() {
@@ -1039,10 +1013,14 @@
           });
         },
 
+        // SIMPLIFIE : on calcule sur this.frise qui retourne [] si replié → 0 friction affichée
+        // C'est cohérent : tant que la frise n'est pas dépliée, on ne fait pas de boucle lourde
         get friseStats() {
-          const frictionTotal = this.frise.filter(r => r.hasFrictionTotal).length;
-          const frictionS22 = this.frise.filter(r => r.hasFrictionS22).length;
-          return { frictionTotal, frictionS22 };
+          const f = this.frise;
+          return {
+            frictionTotal: f.filter(r => r.hasFrictionTotal).length,
+            frictionS22: f.filter(r => r.hasFrictionS22).length
+          };
         },
 
         get hiddenEmptyCount() {
