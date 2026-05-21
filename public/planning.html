@@ -16,7 +16,6 @@
       50% { opacity: .4; }
     }
 
-    /* === Frise 8 semaines === */
     .frise-scroll-container {
       width: 100%;
       max-width: 100%;
@@ -29,7 +28,6 @@
     }
     @media (max-width: 768px) {
       .frise-scroll-container {
-        /* Contrainte hard pour éviter le déversement vertical */
         max-width: calc(100vw - 2rem);
       }
     }
@@ -50,10 +48,7 @@
       }
     }
 
-    /* RETOUR au comportement v1 : display:contents simple, qui marchait */
-    .frise-row-wrapper {
-      display: contents;
-    }
+    .frise-row-wrapper { display: contents; }
 
     .frise-th {
       position: sticky;
@@ -215,7 +210,7 @@
       gap: 2px;
     }
     .view-toggle button {
-      padding: 0.375rem 0.875rem;
+      padding: 0.375rem 0.75rem;
       font-size: 0.75rem;
       font-weight: 500;
       border-radius: 5px;
@@ -224,6 +219,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.375rem;
+      white-space: nowrap;
     }
     .view-toggle button:hover:not(.active) {
       color: rgb(15 23 42);
@@ -235,33 +231,20 @@
       box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
-    /* === FIX H3 PROBLEMATIQUE === */
-    /* Le titre frise ne wrap plus mot par mot : structure verticale propre sur mobile */
-    .frise-title-block {
+    /* Filtres mobile : scroll horizontal au lieu de wrap qui empile */
+    .filter-row-mobile {
       display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      min-width: 0;
-    }
-    .frise-title-line {
-      display: flex;
-      align-items: center;
       gap: 0.5rem;
-      flex-wrap: wrap;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 0.25rem;
+      scrollbar-width: none;
     }
-    .frise-title-text {
-      font-size: 1rem;
-      font-weight: 600;
-      color: rgb(15 23 42);
-      line-height: 1.3;
-      /* Ne s'éclate pas en colonne sur mobile */
-      white-space: normal;
-      word-break: keep-all;
+    .filter-row-mobile::-webkit-scrollbar {
+      display: none;
     }
-    @media (max-width: 480px) {
-      .frise-title-text {
-        font-size: 0.875rem;
-      }
+    .filter-row-mobile > * {
+      flex-shrink: 0;
     }
   </style>
 </head>
@@ -354,19 +337,49 @@
         </div>
       </div>
 
-      <!-- HEADER FRISE + TOGGLE — VERSION FIXED -->
-      <div class="flex items-end justify-between mb-3 flex-wrap gap-3">
-        <div class="frise-title-block min-w-0 flex-1">
+      <!-- ============================================ -->
+      <!-- HEADER FRISE : MOBILE empilé / DESKTOP inline -->
+      <!-- ============================================ -->
+
+      <!-- MOBILE : header empilé verticalement, plus de flex-wrap problématique -->
+      <div class="md:hidden mb-3 space-y-3">
+        <div>
           <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">
             Frise temporelle · vue <span x-text="viewMode === 'agent' ? 'Par agent' : 'Par machine'"></span>
           </p>
-          <div class="frise-title-line">
-            <span class="frise-title-text">S18 → S25</span>
-            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200 whitespace-nowrap">8 semaines</span>
-          </div>
-          <p class="text-xs text-slate-500">27 avril → 19 juin 2026</p>
+          <h3 class="text-base font-semibold text-slate-900 mt-0.5">S18 → S25</h3>
+          <p class="text-xs text-slate-500">27 avril → 19 juin 2026 · 8 semaines</p>
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
+        <div class="flex items-center gap-2">
+          <div class="view-toggle">
+            <button @click="setViewMode('agent')" :class="viewMode === 'agent' ? 'active' : ''">
+              <span>👤</span><span>Par agent</span>
+            </button>
+            <button @click="setViewMode('machine')" :class="viewMode === 'machine' ? 'active' : ''">
+              <span>⚙</span><span>Par machine</span>
+            </button>
+          </div>
+          <button @click="showFrise = !showFrise" class="ml-auto flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 transition">
+            <svg class="w-3 h-3 transition-transform" :class="showFrise ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+            <span x-text="showFrise ? 'Replier' : 'Déplier'"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- DESKTOP : header inline original -->
+      <div class="hidden md:flex items-end justify-between mb-3 gap-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-xs uppercase tracking-wider text-slate-500 font-medium">
+            Frise temporelle · vue <span x-text="viewMode === 'agent' ? 'Par agent' : 'Par machine'"></span>
+          </p>
+          <h3 class="text-base font-semibold text-slate-900 mt-0.5 flex items-center gap-2 flex-wrap">
+            <span>S18 → S25 · 27 avril → 19 juin 2026</span>
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200 whitespace-nowrap">8 semaines</span>
+          </h3>
+        </div>
+        <div class="flex items-center gap-3 flex-shrink-0">
           <div class="view-toggle">
             <button @click="setViewMode('agent')" :class="viewMode === 'agent' ? 'active' : ''">
               <span>👤</span><span>Par agent</span>
@@ -396,42 +409,92 @@
           <span>
             <span x-text="machines.length"></span> machines ·
             <span class="text-amber-600 font-medium" x-text="friseStats.frictionTotal"></span> avec friction toutes semaines ·
-            <span class="text-sky-700 font-medium" x-text="friseStats.frictionS22"></span> sur S22 ·
-            <span class="text-slate-400" x-text="recordsSansMachine + ' record' + (recordsSansMachine > 1 ? 's' : '') + ' sans machine (absences/formations) — non affichés en vue Par machine'"></span>
+            <span class="text-sky-700 font-medium" x-text="friseStats.frictionS22"></span> sur S22
           </span>
         </template>
       </div>
 
+      <!-- ============================================ -->
+      <!-- FILTRES : MOBILE scroll horizontal / DESKTOP wrap -->
+      <!-- ============================================ -->
+
       <div x-show="showFrise" x-cloak class="mb-4 space-y-2">
 
-        <div x-show="viewMode === 'agent'" class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Équipe</span>
-          <button @click="filterEquipe = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterEquipe === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Toutes</button>
-          <template x-for="eq in equipesDispo" :key="eq">
-            <button @click="filterEquipe = eq" class="pill text-xs px-3 py-1 rounded-full border" :class="filterEquipe === eq ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'" x-text="eq"></button>
-          </template>
+        <!-- Filtre Équipe (agent) -->
+        <div x-show="viewMode === 'agent'">
+          <!-- Mobile -->
+          <div class="md:hidden">
+            <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">Équipe</p>
+            <div class="filter-row-mobile">
+              <button @click="filterEquipe = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterEquipe === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600'">Toutes</button>
+              <template x-for="eq in equipesDispo" :key="eq">
+                <button @click="filterEquipe = eq" class="pill text-xs px-3 py-1 rounded-full border" :class="filterEquipe === eq ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600'" x-text="eq"></button>
+              </template>
+            </div>
+          </div>
+          <!-- Desktop -->
+          <div class="hidden md:flex items-center gap-2 flex-wrap">
+            <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Équipe</span>
+            <button @click="filterEquipe = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterEquipe === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Toutes</button>
+            <template x-for="eq in equipesDispo" :key="eq">
+              <button @click="filterEquipe = eq" class="pill text-xs px-3 py-1 rounded-full border" :class="filterEquipe === eq ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'" x-text="eq"></button>
+            </template>
+          </div>
         </div>
 
-        <div x-show="viewMode === 'machine'" class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Type</span>
-          <button @click="filterType = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Tous</button>
-          <template x-for="t in typesDispo" :key="t">
-            <button @click="filterType = t" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'" x-text="t"></button>
-          </template>
+        <!-- Filtre Type (machine) -->
+        <div x-show="viewMode === 'machine'">
+          <!-- Mobile -->
+          <div class="md:hidden">
+            <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">Type</p>
+            <div class="filter-row-mobile">
+              <button @click="filterType = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600'">Tous</button>
+              <template x-for="t in typesDispo" :key="t">
+                <button @click="filterType = t" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600'" x-text="t"></button>
+              </template>
+            </div>
+          </div>
+          <!-- Desktop -->
+          <div class="hidden md:flex items-center gap-2 flex-wrap">
+            <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Type</span>
+            <button @click="filterType = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Tous</button>
+            <template x-for="t in typesDispo" :key="t">
+              <button @click="filterType = t" class="pill text-xs px-3 py-1 rounded-full border" :class="filterType === t ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'" x-text="t"></button>
+            </template>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Statut</span>
-          <button @click="filterStatut = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Tous</button>
-          <button @click="filterStatut = 'friction'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'friction' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white border-slate-200 text-amber-700 hover:border-amber-400'">⚠ Frictions (Absent + Modifié)</button>
-          <button @click="filterStatut = 'Réalisé'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'Réalisé' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-emerald-700 hover:border-emerald-400'">Réalisé</button>
-          <button @click="filterStatut = 'Prévu'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'Prévu' ? 'bg-sky-600 text-white border-sky-600' : 'bg-white border-slate-200 text-sky-700 hover:border-sky-400'">Prévu</button>
-
-          <label class="ml-auto flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
-            <input type="checkbox" x-model="hideEmpty" class="rounded border-slate-300 text-slate-900 focus:ring-slate-500">
-            <span x-text="viewMode === 'agent' ? 'Masquer agents sans aucun record 8 semaines' : 'Masquer machines sans aucun record 8 semaines'"></span>
-          </label>
+        <!-- Filtre Statut -->
+        <div>
+          <!-- Mobile -->
+          <div class="md:hidden">
+            <p class="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">Statut</p>
+            <div class="filter-row-mobile">
+              <button @click="filterStatut = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600'">Tous</button>
+              <button @click="filterStatut = 'friction'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'friction' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white border-slate-200 text-amber-700'">⚠ Frictions</button>
+              <button @click="filterStatut = 'Réalisé'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'Réalisé' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-emerald-700'">Réalisé</button>
+              <button @click="filterStatut = 'Prévu'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'Prévu' ? 'bg-sky-600 text-white border-sky-600' : 'bg-white border-slate-200 text-sky-700'">Prévu</button>
+            </div>
+          </div>
+          <!-- Desktop -->
+          <div class="hidden md:flex items-center gap-2 flex-wrap">
+            <span class="text-xs text-slate-500 font-medium uppercase tracking-wider flex-shrink-0">Statut</span>
+            <button @click="filterStatut = null" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === null ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'">Tous</button>
+            <button @click="filterStatut = 'friction'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'friction' ? 'bg-amber-600 text-white border-amber-600' : 'bg-white border-slate-200 text-amber-700 hover:border-amber-400'">⚠ Frictions (Absent + Modifié)</button>
+            <button @click="filterStatut = 'Réalisé'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'Réalisé' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-slate-200 text-emerald-700 hover:border-emerald-400'">Réalisé</button>
+            <button @click="filterStatut = 'Prévu'" class="pill text-xs px-3 py-1 rounded-full border" :class="filterStatut === 'Prévu' ? 'bg-sky-600 text-white border-sky-600' : 'bg-white border-slate-200 text-sky-700 hover:border-sky-400'">Prévu</button>
+            <label class="ml-auto flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+              <input type="checkbox" x-model="hideEmpty" class="rounded border-slate-300 text-slate-900 focus:ring-slate-500">
+              <span x-text="viewMode === 'agent' ? 'Masquer agents sans aucun record 8 semaines' : 'Masquer machines sans aucun record 8 semaines'"></span>
+            </label>
+          </div>
         </div>
+
+        <!-- Checkbox masquer vides mobile (séparée car prend toute la largeur) -->
+        <label class="md:hidden flex items-center gap-2 text-xs text-slate-600 cursor-pointer pt-1">
+          <input type="checkbox" x-model="hideEmpty" class="rounded border-slate-300 text-slate-900 focus:ring-slate-500">
+          <span x-text="viewMode === 'agent' ? 'Masquer agents sans record' : 'Masquer machines sans record'"></span>
+        </label>
 
         <div class="text-xs text-slate-500" x-show="filterEquipe || filterType || filterStatut">
           <span x-text="filteredFrise.length"></span> <span x-text="viewMode === 'agent' ? 'agent' : 'machine'"></span><span x-show="filteredFrise.length > 1">s</span> affiché<span x-show="filteredFrise.length > 1">s</span>
@@ -590,7 +653,6 @@
         </p>
       </div>
 
-      <!-- État replié : bandeau simple identique mobile et desktop -->
       <div x-show="!showFrise" x-cloak class="bg-slate-100 border border-slate-200 rounded-lg p-4 text-center">
         <p class="text-sm text-slate-600">
           Frise repliée — <span class="text-amber-700 font-semibold" x-text="friseStats.frictionTotal"></span> friction<span x-show="friseStats.frictionTotal > 1">s</span> sur 8 semaines · <span class="text-sky-700 font-semibold" x-text="friseStats.frictionS22"></span> sur S22
@@ -829,8 +891,8 @@
         lastSync: '',
         showRaw: false,
         showDiagnostic: false,
-        // Frise repliée sur mobile par défaut (économie de rendu initial)
-        showFrise: typeof window !== 'undefined' ? window.innerWidth >= 768 : true,
+        // RETOUR état d'origine : dépliée partout, point.
+        showFrise: true,
         hideEmpty: true,
         filterEquipe: null,
         filterType: null,
@@ -977,9 +1039,7 @@
           return rows;
         },
 
-        // CRITIQUE : si frise repliée, on retourne vide → pas de calcul de buildCellForWeek
         get frise() {
-          if (!this.showFrise) return [];
           if (this.viewMode === 'agent') {
             if (!this.agents.length) return [];
             return this.buildFriseForEntities(this.agents, this.byAgentByWeek);
@@ -1013,8 +1073,6 @@
           });
         },
 
-        // SIMPLIFIE : on calcule sur this.frise qui retourne [] si replié → 0 friction affichée
-        // C'est cohérent : tant que la frise n'est pas dépliée, on ne fait pas de boucle lourde
         get friseStats() {
           const f = this.frise;
           return {
