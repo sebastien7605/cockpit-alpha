@@ -259,7 +259,7 @@
     }
 
     /* ============================================
-       DRAWER ÉTAPE 5
+       DRAWER ÉTAPE 5.1
        ============================================ */
     .drawer-overlay {
       position: fixed;
@@ -315,6 +315,31 @@
       background: white;
     }
     .drawer-record:last-child { margin-bottom: 0; }
+
+    /* Étape 5.1 : badge date dominant en haut-gauche */
+    .drawer-record-date {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.4rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgb(15 23 42);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .drawer-record-date .day-name {
+      font-size: 0.65rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      opacity: 0.7;
+    }
+    .drawer-record-date .day-num {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
     .drawer-record-statut {
       display: inline-block;
       font-size: 0.65rem;
@@ -970,7 +995,7 @@
     </div>
 
     <!-- ============================================ -->
-    <!-- DRAWER ÉTAPE 5 — slide-in droit              -->
+    <!-- DRAWER ÉTAPE 5.1 — slide-in droit            -->
     <!-- ============================================ -->
     <div x-show="drawerOpen"
          x-cloak
@@ -1013,7 +1038,7 @@
         </div>
         <div class="mt-3 flex items-center gap-2 text-xs">
           <span class="px-2 py-0.5 rounded bg-slate-900 text-white font-semibold" x-text="'S' + drawerContext.week"></span>
-          <span class="text-slate-600">lun. <span x-text="drawerContext.mondayDate"></span></span>
+          <span class="text-slate-600">semaine du <span x-text="drawerContext.mondayDate"></span></span>
           <span class="text-slate-400">·</span>
           <span class="text-slate-600" x-text="drawerContext.records.length + ' record' + (drawerContext.records.length > 1 ? 's' : '')"></span>
           <span x-show="drawerContext.week === SEMAINE_COURANTE" class="ml-auto text-sky-700 font-medium">en cours</span>
@@ -1027,7 +1052,7 @@
         <!-- Bandeau collision si détectée -->
         <div x-show="drawerHasCollision" class="drawer-collision-banner">
           <span>⚠</span>
-          <span><strong>Collision détectée :</strong> deux statuts contradictoires sur le même créneau. Les deux records ci-dessous sont actifs simultanément.</span>
+          <span><strong>Collision détectée :</strong> deux statuts contradictoires sur le même créneau le même jour. Les records concernés sont marqués d'une bordure orange.</span>
         </div>
 
         <p x-show="drawerContext.records.length === 0" class="text-sm text-slate-500 italic">
@@ -1037,13 +1062,17 @@
         <template x-for="(rec, idx) in drawerContext.records" :key="rec.rec_id">
           <div class="drawer-record" :class="drawerIsCollisionRecord(rec) ? 'collision' : ''">
 
+            <!-- Étape 5.1 : date dominante en haut-gauche -->
             <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
-              <span class="drawer-record-statut" :class="drawerStatutClass(rec.statut)" x-text="rec.statut"></span>
-              <div class="flex items-center gap-1.5 text-xs text-slate-500">
-                <span x-show="rec.creneau" class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200" x-text="rec.creneau"></span>
-                <span x-show="!rec.creneau" class="px-2 py-0.5 rounded bg-slate-50 border border-slate-200 text-slate-400 italic">sans créneau</span>
-                <span x-text="formatDateFr(rec.date)"></span>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="drawer-record-date">
+                  <span class="day-name" x-text="formatDayName(rec.date)"></span>
+                  <span class="day-num" x-text="formatDayNum(rec.date)"></span>
+                </span>
+                <span x-show="rec.creneau" class="text-[11px] font-medium text-slate-600 px-2 py-0.5 rounded bg-slate-100 border border-slate-200" x-text="rec.creneau"></span>
+                <span x-show="!rec.creneau" class="text-[11px] text-slate-400 italic px-2 py-0.5 rounded bg-slate-50 border border-slate-200">sans créneau</span>
               </div>
+              <span class="drawer-record-statut" :class="drawerStatutClass(rec.statut)" x-text="rec.statut"></span>
             </div>
 
             <div class="text-sm text-slate-900 font-medium mb-2" x-show="rec.tache" x-text="rec.tache"></div>
@@ -1104,7 +1133,7 @@
           Fermer (Échap)
         </button>
         <span class="ml-auto text-[10px] text-slate-400 self-center">
-          Records affichés dans l'ordre Airtable, sans priorité statut.
+          Tri par date · sans priorité statut
         </span>
       </div>
     </aside>
@@ -1132,7 +1161,7 @@
         // === Étape 5 : state drawer ===
         drawerOpen: false,
         drawerContext: {
-          entityType: null,  // 'agent' | 'machine'
+          entityType: null,
           entity: null,
           week: null,
           records: [],
@@ -1171,7 +1200,6 @@
           }
         },
 
-        // === Étape 5 : raccourcis clavier ===
         initKeyboardShortcuts() {
           document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.drawerOpen) {
@@ -1180,25 +1208,25 @@
           });
         },
 
-        // === Étape 5 : ouverture drawer ===
+        // === Étape 5.1 : tri primaire par DATE, secondaire par CRENEAU ===
+        sortDrawerRecords(records) {
+          return [...records].sort((a, b) => {
+            // 1. Date ASC (string YYYY-MM-DD, comparaison lexico = chrono)
+            const dateCmp = (a.date || '').localeCompare(b.date || '');
+            if (dateCmp !== 0) return dateCmp;
+            // 2. Créneau : Matin < Après-midi < sans
+            return this.creneauOrder(a.creneau) - this.creneauOrder(b.creneau);
+          });
+        },
+
         openDrawer(row, week) {
-          // Récupérer les records bruts de la cellule (sans la priorité)
           const indexByEntity = this.viewMode === 'agent' ? this.byAgentByWeek : this.byMachineByWeek;
           const rawRecords = (indexByEntity[row.entity.rec_id] && indexByEntity[row.entity.rec_id][week]) || [];
-
-          // Tri stable : Matin → Après-midi → sans créneau, ordre Airtable préservé à l'intérieur
-          const sorted = [...rawRecords].sort((a, b) => {
-            const orderA = this.creneauOrder(a.creneau);
-            const orderB = this.creneauOrder(b.creneau);
-            if (orderA !== orderB) return orderA - orderB;
-            return 0; // ordre Airtable
-          });
-
           this.drawerContext = {
             entityType: this.viewMode,
             entity: row.entity,
             week,
-            records: sorted,
+            records: this.sortDrawerRecords(rawRecords),
             mondayDate: this.mondayLabelForWeek(week)
           };
           this.drawerOpen = true;
@@ -1213,41 +1241,36 @@
         creneauOrder(creneau) {
           if (creneau === 'Matin') return 0;
           if (creneau === 'Après-midi') return 1;
-          return 2; // sans créneau (absences/formations)
+          return 2;
         },
 
-        // === Étape 5 : pivot vers entité opposée ===
         pivotToMachine(machineRecId, week) {
           const machine = this.machines.find(m => m.rec_id === machineRecId);
           if (!machine) return;
-          // Construire la cellule machine pour cette semaine
           const rawRecords = (this.byMachineByWeek[machineRecId] && this.byMachineByWeek[machineRecId][week]) || [];
-          const sorted = [...rawRecords].sort((a, b) => this.creneauOrder(a.creneau) - this.creneauOrder(b.creneau));
           this.drawerContext = {
             entityType: 'machine',
             entity: machine,
             week,
-            records: sorted,
+            records: this.sortDrawerRecords(rawRecords),
             mondayDate: this.mondayLabelForWeek(week)
           };
-          // viewMode reste tel quel (l'utilisateur peut revenir à la frise inchangée)
         },
 
         pivotToAgent(agentRecId, week) {
           const agent = this.agents.find(a => a.rec_id === agentRecId);
           if (!agent) return;
           const rawRecords = (this.byAgentByWeek[agentRecId] && this.byAgentByWeek[agentRecId][week]) || [];
-          const sorted = [...rawRecords].sort((a, b) => this.creneauOrder(a.creneau) - this.creneauOrder(b.creneau));
           this.drawerContext = {
             entityType: 'agent',
             entity: agent,
             week,
-            records: sorted,
+            records: this.sortDrawerRecords(rawRecords),
             mondayDate: this.mondayLabelForWeek(week)
           };
         },
 
-        // === Étape 5 : helpers d'affichage drawer ===
+        // === Étape 5.1 : helpers date drawer ===
         entityDisplayName(entity, type) {
           if (!entity) return '—';
           if (type === 'agent') return ((entity.prenom || '') + ' ' + (entity.nom || '')).trim() || '—';
@@ -1264,34 +1287,44 @@
           }
         },
 
-        formatDateFr(iso) {
+        formatDayName(iso) {
           if (!iso) return '—';
           const d = new Date(iso);
-          if (isNaN(d)) return iso;
-          return d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
+          if (isNaN(d)) return '—';
+          return d.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '');
         },
 
-        // Collision = 2+ records sur le même créneau avec statuts différents
+        formatDayNum(iso) {
+          if (!iso) return '—';
+          const d = new Date(iso);
+          if (isNaN(d)) return '—';
+          return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+        },
+
+        // === Étape 5.1 : collision = même DATE + même CRENEAU + statuts différents ===
         get drawerHasCollision() {
           if (!this.drawerContext.records || this.drawerContext.records.length < 2) return false;
-          const byCreneau = {};
+          const groups = {};
           this.drawerContext.records.forEach(r => {
-            const k = r.creneau || '__sans__';
-            if (!byCreneau[k]) byCreneau[k] = [];
-            byCreneau[k].push(r);
+            const k = (r.date || '__nodate__') + '__' + (r.creneau || '__nocreneau__');
+            if (!groups[k]) groups[k] = [];
+            groups[k].push(r);
           });
-          return Object.values(byCreneau).some(group => {
-            if (group.length < 2) return false;
-            const statuts = new Set(group.map(r => r.statut));
+          return Object.values(groups).some(g => {
+            if (g.length < 2) return false;
+            const statuts = new Set(g.map(r => r.statut));
             return statuts.size > 1;
           });
         },
 
         drawerIsCollisionRecord(rec) {
           if (!this.drawerHasCollision) return false;
-          const sameCreneau = this.drawerContext.records.filter(r => (r.creneau || '__sans__') === (rec.creneau || '__sans__'));
-          if (sameCreneau.length < 2) return false;
-          const statuts = new Set(sameCreneau.map(r => r.statut));
+          const sameGroup = this.drawerContext.records.filter(r =>
+            (r.date || '__nodate__') === (rec.date || '__nodate__') &&
+            (r.creneau || '__nocreneau__') === (rec.creneau || '__nocreneau__')
+          );
+          if (sameGroup.length < 2) return false;
+          const statuts = new Set(sameGroup.map(r => r.statut));
           return statuts.size > 1;
         },
 
