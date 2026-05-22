@@ -1459,35 +1459,54 @@
                     <div class="pourquoi-value" x-text="pourquoiByRecId[rec.rec_id].data.verdict"></div>
                   </div>
 
-                  <!-- Bloc 2 : Cause probable -->
-                  <div class="pourquoi-block">
-                    <div class="pourquoi-label">
-                      <span>🔍</span><span>Cause probable</span>
-                    </div>
-                    <div class="pourquoi-value"
-                         :class="isNaValue(pourquoiByRecId[rec.rec_id].data.cause_probable) ? 'is-na' : ''"
-                         x-text="isNaValue(pourquoiByRecId[rec.rec_id].data.cause_probable) ? 'Non applicable' : pourquoiByRecId[rec.rec_id].data.cause_probable"></div>
-                  </div>
+                  <!-- Blocs 2/3/4 : Cause + Action + Délai
+                       SKIN COMPACT : si les 3 sont NA (typique routine_coherente
+                       et realise_conforme sans incident), on masque tout le groupe
+                       pour ne pas alourdir le panel avec 3 "Non applicable" inutiles.
+                       Le verdict suffit. -->
+                  <template x-if="pourquoiHasReco(pourquoiByRecId[rec.rec_id].data)">
+                    <div>
+                      <!-- Bloc 2 : Cause probable -->
+                      <div class="pourquoi-block">
+                        <div class="pourquoi-label">
+                          <span>🔍</span><span>Cause probable</span>
+                        </div>
+                        <div class="pourquoi-value"
+                             :class="isNaValue(pourquoiByRecId[rec.rec_id].data.cause_probable) ? 'is-na' : ''"
+                             x-text="isNaValue(pourquoiByRecId[rec.rec_id].data.cause_probable) ? 'Non applicable' : pourquoiByRecId[rec.rec_id].data.cause_probable"></div>
+                      </div>
 
-                  <!-- Bloc 3 : Action recommandée -->
-                  <div class="pourquoi-block">
-                    <div class="pourquoi-label">
-                      <span>🛠️</span><span>Action recommandée</span>
-                    </div>
-                    <div class="pourquoi-value"
-                         :class="isNaValue(pourquoiByRecId[rec.rec_id].data.action) ? 'is-na' : ''"
-                         x-text="isNaValue(pourquoiByRecId[rec.rec_id].data.action) ? 'Aucune action nécessaire' : pourquoiByRecId[rec.rec_id].data.action"></div>
-                  </div>
+                      <!-- Bloc 3 : Action recommandée -->
+                      <div class="pourquoi-block">
+                        <div class="pourquoi-label">
+                          <span>🛠️</span><span>Action recommandée</span>
+                        </div>
+                        <div class="pourquoi-value"
+                             :class="isNaValue(pourquoiByRecId[rec.rec_id].data.action) ? 'is-na' : ''"
+                             x-text="isNaValue(pourquoiByRecId[rec.rec_id].data.action) ? 'Aucune action nécessaire' : pourquoiByRecId[rec.rec_id].data.action"></div>
+                      </div>
 
-                  <!-- Bloc 4 : Délai -->
-                  <div class="pourquoi-block">
-                    <div class="pourquoi-label">
-                      <span>⏱️</span><span>Délai</span>
+                      <!-- Bloc 4 : Délai -->
+                      <div class="pourquoi-block">
+                        <div class="pourquoi-label">
+                          <span>⏱️</span><span>Délai</span>
+                        </div>
+                        <div class="pourquoi-value"
+                             :class="isNaValue(pourquoiByRecId[rec.rec_id].data.delai) ? 'is-na' : ''"
+                             x-text="isNaValue(pourquoiByRecId[rec.rec_id].data.delai) ? 'Aucun délai' : pourquoiByRecId[rec.rec_id].data.delai"></div>
+                      </div>
                     </div>
-                    <div class="pourquoi-value"
-                         :class="isNaValue(pourquoiByRecId[rec.rec_id].data.delai) ? 'is-na' : ''"
-                         x-text="isNaValue(pourquoiByRecId[rec.rec_id].data.delai) ? 'Aucun délai' : pourquoiByRecId[rec.rec_id].data.delai"></div>
-                  </div>
+                  </template>
+
+                  <!-- Mention compacte "RAS opérationnel" quand panel compact -->
+                  <template x-if="!pourquoiHasReco(pourquoiByRecId[rec.rec_id].data)">
+                    <div class="pourquoi-block">
+                      <div class="text-[11px] text-slate-500 italic flex items-center gap-1.5">
+                        <span>✓</span>
+                        <span>Aucune action requise — situation cohérente.</span>
+                      </div>
+                    </div>
+                  </template>
 
                   <!-- Bloc 5 : Meta technique (compact, dernier) -->
                   <div class="pourquoi-block">
@@ -1773,6 +1792,17 @@
           if (v === null || v === undefined) return true;
           const s = String(v).trim().toUpperCase();
           return s === '' || s === 'NA' || s === 'N/A' || s === '-' || s === '—';
+        },
+
+        // Skin compact : retourne true si AU MOINS UNE des 3 reco a un contenu utile.
+        // Si les 3 sont NA (typique routine_coherente sans incident OU realise_conforme
+        // tranquille), on masque tout le bloc reco pour éviter "Non applicable" répété.
+        // Le verdict porte alors seul le message + mention "RAS opérationnel" compacte.
+        pourquoiHasReco(data) {
+          if (!data) return false;
+          return !this.isNaValue(data.cause_probable)
+              || !this.isNaValue(data.action)
+              || !this.isNaValue(data.delai);
         },
 
         pourquoiAccentClass(type) {
