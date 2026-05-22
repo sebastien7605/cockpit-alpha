@@ -1693,10 +1693,13 @@
             if (recs.length === 0) return;
 
             const grp = this.analyzeWeekGroups(recs, 'agent');
+            // Étape 6 fix : on agrège par cas distinct (ownerRecId + date + créneau),
+            // pas par rec_id. Un groupe de 2 records sur le même créneau = 1 cas.
             recs.forEach(r => {
               if (grp.collisionRecIds.has(r.rec_id)) {
-                if (!collisionsMap.has(r.rec_id)) {
-                  collisionsMap.set(r.rec_id, {
+                const caseKey = 'agent::' + agent.rec_id + '::' + (r.date || '') + '::' + (r.creneau || '');
+                if (!collisionsMap.has(caseKey)) {
+                  collisionsMap.set(caseKey, {
                     rec_id: r.rec_id,
                     ownerType: 'agent',
                     ownerRecId: agent.rec_id,
@@ -1706,8 +1709,9 @@
                   });
                 }
               } else if (grp.overloadRecIds.has(r.rec_id)) {
-                if (!overloadsMap.has(r.rec_id)) {
-                  overloadsMap.set(r.rec_id, {
+                const caseKey = 'agent::' + agent.rec_id + '::' + (r.date || '') + '::' + (r.creneau || '');
+                if (!overloadsMap.has(caseKey)) {
+                  overloadsMap.set(caseKey, {
                     rec_id: r.rec_id,
                     ownerType: 'agent',
                     ownerRecId: agent.rec_id,
@@ -1770,11 +1774,14 @@
             const grp = this.analyzeWeekGroups(recs, 'machine');
             recs.forEach(r => {
               // Collision déjà capté côté agent (impossibilité physique = porte agent)
-              // Surcharge machine = compteur dédié, n'écrase pas la passe agent
-              if (grp.overloadRecIds.has(r.rec_id) && !collisionsMap.has(r.rec_id)) {
-                const key = r.rec_id + '::machine::' + machine.rec_id;
-                if (!overloadsMap.has(key)) {
-                  overloadsMap.set(key, {
+              // Surcharge machine = cas distinct (machine + date + créneau)
+              if (grp.overloadRecIds.has(r.rec_id)) {
+                // Skip si une collision agent existe déjà sur ce rec_id
+                const agentCollisionKey = 'agent::' + r.agent_rec_id + '::' + (r.date || '') + '::' + (r.creneau || '');
+                if (collisionsMap.has(agentCollisionKey)) return;
+                const caseKey = 'machine::' + machine.rec_id + '::' + (r.date || '') + '::' + (r.creneau || '');
+                if (!overloadsMap.has(caseKey)) {
+                  overloadsMap.set(caseKey, {
                     rec_id: r.rec_id,
                     ownerType: 'machine',
                     ownerRecId: machine.rec_id,
