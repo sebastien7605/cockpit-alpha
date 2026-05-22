@@ -913,7 +913,7 @@
           <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-sky-100 border border-sky-300"></span>Prévu</span>
           <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-slate-100 border border-slate-300"></span>Absent</span>
           <span class="inline-flex items-center gap-1"><span class="w-3 h-3 rounded-sm bg-violet-100 border border-violet-300"></span>Modifié</span>
-          <span class="text-slate-400 ml-2">📅 Congés · ⚕ Maladie · 🎓 Formation · 🌉 Pont</span>
+          <span class="text-slate-400 ml-2">📅 Congés · ⏸ RTT · ⚕ Maladie · 🎓 Formation · 🌉 Pont</span>
           <span class="text-slate-400 ml-2">· Clic cellule pour voir tous les records</span>
         </div>
 
@@ -2195,10 +2195,13 @@
         extractMotif(p) {
           if (!p) return null;
           if (p.motif_absence) return p.motif_absence;
+          if (p.statut !== 'Absent') return null;
           const c = (p.commentaire_metier || '').toLowerCase();
           const t = (p.tache || '').toLowerCase();
-          if (p.statut !== 'Absent') return null;
-          if (c.includes('congé') || c.includes('rtt') || t.includes('congé')) return 'Congés';
+          // Ordre des tests important : RTT avant Congés (le mot "rtt" est plus spécifique).
+          // Maladie avant Formation pour les rares cas "formation continue maladie".
+          if (c.includes('rtt') || t.includes('rtt')) return 'RTT';
+          if (c.includes('congé') || t.includes('congé')) return 'Congés';
           if (c.includes('maladie') || c.includes('arrêt')) return 'Maladie';
           if (c.includes('formation') || c.includes('stage') || c.includes('b1v') || t.includes('formation')) return 'Formation';
           if (c.includes('pont') || t.includes('pont')) return 'Pont';
@@ -2227,6 +2230,7 @@
         motifPicto(motif) {
           switch (motif) {
             case 'Congés':    return '📅';
+            case 'RTT':       return '⏸';
             case 'Maladie':   return '⚕';
             case 'Formation': return '🎓';
             case 'Stage':     return '🎓';
