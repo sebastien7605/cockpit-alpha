@@ -1354,15 +1354,20 @@
 
         <div x-show="drawerHasOverload && !drawerHasCollision" class="drawer-overload-banner">
           <span class="flex-shrink-0">⚡</span>
-          <span><strong x-text="drawerContext.entityType === 'agent' ? 'Surcharge agent :' : 'Surcharge machine :'"></strong>
-                <span x-show="drawerContext.entityType === 'agent'">deux affectations sur des machines différentes au même créneau. Charge à vérifier.</span>
-                <span x-show="drawerContext.entityType === 'machine'">deux agents différents sur le même créneau. Affectations à clarifier.</span>
+          <span>
+            <strong x-text="drawerContext.entityType === 'agent' ? 'Surcharge agent :' : 'Surcharge machine :'"></strong>
+            <span x-show="drawerContext.entityType === 'agent'">deux affectations sur des machines différentes au même créneau. Charge à vérifier.</span>
+            <span x-show="drawerContext.entityType === 'machine'">deux agents différents sur le même créneau. Affectations à clarifier.</span>
+            <span x-show="drawerOverloadDetails" class="block mt-1 font-medium" x-text="drawerOverloadDetails"></span>
           </span>
         </div>
 
         <div x-show="drawerHasOverload && drawerHasCollision" class="drawer-overload-banner">
           <span class="flex-shrink-0">⚡</span>
-          <span><strong>Surcharge en plus de la collision :</strong> d'autres affectations chevauchent sur le créneau (cibles différentes).</span>
+          <span>
+            <strong>Surcharge en plus de la collision :</strong> d'autres affectations chevauchent sur le créneau (cibles différentes).
+            <span x-show="drawerOverloadDetails" class="block mt-1 font-medium" x-text="drawerOverloadDetails"></span>
+          </span>
         </div>
 
         <p x-show="drawerContext.records.length === 0" class="text-sm text-slate-500 italic">
@@ -1673,6 +1678,51 @@
           return this.drawerGroupAnalysis.overloadRecIds.has(rec.rec_id);
         },
 
+        // Étape 6 affinage : phrase explicite listant les entités du créneau en surcharge.
+        // Vue agent → machines concernées. Vue machine → agents concernés.
+        // Format : "ROBERT Marie et RICHARD Pierre, 26/05 Matin"
+        get drawerOverloadDetails() {
+          const overloadIds = this.drawerGroupAnalysis.overloadRecIds;
+          if (overloadIds.size === 0) return '';
+
+          const records = (this.drawerContext.records || []).filter(r => overloadIds.has(r.rec_id));
+          if (records.length === 0) return '';
+
+          // Groupe par (date + créneau)
+          const groups = {};
+          records.forEach(r => {
+            const k = (r.date || '') + '__' + (r.creneau || '');
+            if (!groups[k]) groups[k] = [];
+            groups[k].push(r);
+          });
+
+          // On formate le premier groupe (le plus tôt en chronologique car records est déjà trié)
+          const firstKey = Object.keys(groups).sort()[0];
+          const group = groups[firstKey];
+          if (!group || group.length < 2) return '';
+
+          // Vue agent → liste les machine_nom. Vue machine → liste les agent_nom.
+          const isAgentView = this.drawerContext.entityType === 'agent';
+          const labels = group.map(r => isAgentView ? r.machine_nom : r.agent_nom).filter(Boolean);
+          if (labels.length < 2) return '';
+
+          // Formatage français : "A et B" pour 2, "A, B et C" pour 3+
+          let entityList;
+          if (labels.length === 2) {
+            entityList = labels[0] + ' et ' + labels[1];
+          } else {
+            entityList = labels.slice(0, -1).join(', ') + ' et ' + labels[labels.length - 1];
+          }
+
+          const dateRec = group[0];
+          const dateShort = dateRec.date
+            ? new Date(dateRec.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+            : '';
+          const creneau = dateRec.creneau || '';
+
+          return entityList + (dateShort ? ', ' + dateShort : '') + (creneau ? ' ' + creneau : '');
+        },
+
         // ====================================================
         // ÉTAPE 6 : surveillanceS22 — agrégation friction S22
         // ====================================================
@@ -1735,7 +1785,8 @@
                     ownerRecId: agent.rec_id,
                     ownerLabel: this.entityDisplayName(agent, 'agent'),
                     sortDate: r.date || '',
-                    sortCreneau: this.creneauOrder(r.creneau)
+                    sortCreneau: this.creneauOrder(r.creneau),
+                    motif: this.extractMotif(r)
                   });
                 }
               }
@@ -1809,8 +1860,8 @@
           const labelize = (arr, max = 2) => {
             if (arr.length === 0) return '';
             const names = [...new Set(arr.map(x => x.ownerLabel))];
-            if (names.length <= max) return names.join(', ');
-            return names.slice(0, max).join(', ') + ' + ' + (names.length - max);
+            if (names.length <= max) return names.join(' · ');
+            return names.slice(0, max).join(' · ') + ' · +' + (names.length - max);
           };
 
           const labelizeDated = (arr) => {
@@ -1820,7 +1871,18 @@
               ? new Date(first.sortDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
               : '';
             if (arr.length === 1) return first.ownerLabel + (dateShort ? ' · ' + dateShort : '');
-            return first.ownerLabel + (dateShort ? ' · ' + dateShort : '') + ' + ' + (arr.length - 1);
+            return first.ownerLabel + (dateShort ? ' · ' + dateShort : '') + ' · +' + (arr.length - 1);
+          };
+
+          const labelizeDatedWithMotif = (arr) => {
+            if (arr.length === 0) return '';
+            const first = arr[0];
+            const dateShort = first.sortDate
+              ? new Date(first.sortDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+              : '';
+            const motif = first.motif ? ' · ' + first.motif : '';
+            if (arr.length === 1) return first.ownerLabel + (dateShort ? ' · ' + dateShort : '') + motif;
+            return first.ownerLabel + (dateShort ? ' · ' + dateShort : '') + motif + ' · +' + (arr.length - 1);
           };
 
           return {
@@ -1833,7 +1895,7 @@
             collisionsLabel: labelize(collisions),
             overloadsLabel: labelize(overloads),
             uncoveredLabel: labelizeDated(uncovered),
-            orphansLabel: labelizeDated(orphans)
+            orphansLabel: labelizeDatedWithMotif(orphans)
           };
         },
 
