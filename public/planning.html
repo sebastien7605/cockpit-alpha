@@ -259,6 +259,143 @@
     }
 
     /* ============================================
+       BANDEAU À SURVEILLER S22 — ÉTAPE 6
+       ============================================ */
+    .surveillance-wrapper {
+      background: rgb(248 250 252);
+      border: 1px solid rgb(226 232 240);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .surveillance-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.625rem;
+    }
+    @media (max-width: 768px) {
+      .surveillance-grid {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.25rem;
+        scrollbar-width: none;
+        gap: 0.5rem;
+      }
+      .surveillance-grid::-webkit-scrollbar {
+        display: none;
+      }
+      .surveillance-grid > * {
+        flex-shrink: 0;
+        width: 200px;
+      }
+    }
+    .surv-card {
+      background: white;
+      border: 1px solid rgb(226 232 240);
+      border-radius: 8px;
+      padding: 0.75rem;
+      transition: all .15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .surv-card.is-clickable {
+      cursor: pointer;
+    }
+    .surv-card.is-clickable:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+    .surv-card.is-clickable:focus-visible {
+      outline: 2px solid rgb(56 189 248);
+      outline-offset: 2px;
+    }
+    .surv-card.is-zero {
+      opacity: 0.55;
+      cursor: default;
+    }
+    .surv-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+    .surv-card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .surv-card-label {
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .surv-card-count {
+      font-size: 1.75rem;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .surv-card-hint {
+      font-size: 0.65rem;
+      line-height: 1.3;
+      min-height: 1.5em;
+    }
+
+    /* Collision = orange */
+    .surv-card.surv-collision {
+      background: rgb(254 243 199);
+      border-color: rgb(252 211 77);
+    }
+    .surv-card.surv-collision .surv-card-dot   { background: rgb(217 119 6); }
+    .surv-card.surv-collision .surv-card-label { color: rgb(146 64 14); }
+    .surv-card.surv-collision .surv-card-count { color: rgb(120 53 15); }
+    .surv-card.surv-collision .surv-card-hint  { color: rgb(146 64 14); }
+
+    /* Surcharge = bleu */
+    .surv-card.surv-overload {
+      background: rgb(219 234 254);
+      border-color: rgb(147 197 253);
+    }
+    .surv-card.surv-overload .surv-card-dot   { background: rgb(37 99 235); }
+    .surv-card.surv-overload .surv-card-label { color: rgb(30 64 175); }
+    .surv-card.surv-overload .surv-card-count { color: rgb(30 58 138); }
+    .surv-card.surv-overload .surv-card-hint  { color: rgb(30 64 175); }
+
+    /* Absent non couvert = ambre */
+    .surv-card.surv-uncovered {
+      background: rgb(254 243 199);
+      border-color: rgb(251 191 36);
+    }
+    .surv-card.surv-uncovered .surv-card-dot   { background: rgb(180 83 9); }
+    .surv-card.surv-uncovered .surv-card-label { color: rgb(146 64 14); }
+    .surv-card.surv-uncovered .surv-card-count { color: rgb(120 53 15); }
+    .surv-card.surv-uncovered .surv-card-hint  { color: rgb(146 64 14); }
+
+    /* Absence sans machine = gris (invisible vue machine) */
+    .surv-card.surv-orphan {
+      background: rgb(241 245 249);
+      border-color: rgb(203 213 225);
+    }
+    .surv-card.surv-orphan .surv-card-dot   { background: rgb(100 116 139); }
+    .surv-card.surv-orphan .surv-card-label { color: rgb(51 65 85); }
+    .surv-card.surv-orphan .surv-card-count { color: rgb(15 23 42); }
+    .surv-card.surv-orphan .surv-card-hint  { color: rgb(51 65 85); }
+
+    /* État zéro neutre : garde le contour mais grise */
+    .surv-card.is-zero.surv-collision,
+    .surv-card.is-zero.surv-overload,
+    .surv-card.is-zero.surv-uncovered,
+    .surv-card.is-zero.surv-orphan {
+      background: white;
+      border-color: rgb(226 232 240);
+    }
+    .surv-card.is-zero .surv-card-count {
+      color: rgb(148 163 184);
+    }
+
+    /* ============================================
        DRAWER ÉTAPE 5.2
        ============================================ */
     .drawer-overlay {
@@ -481,6 +618,144 @@
             <span class="text-xs text-slate-500">Champ inactif</span>
           </div>
         </div>
+      </div>
+
+      <!-- ============================================ -->
+      <!-- BANDEAU À SURVEILLER S22 — ÉTAPE 6           -->
+      <!-- ============================================ -->
+      <div class="surveillance-wrapper">
+        <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
+          <div class="flex items-center gap-3 min-w-0">
+            <button @click="showSurveillance = !showSurveillance"
+                    class="flex-shrink-0 w-6 h-6 rounded flex items-center justify-center text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition"
+                    :aria-label="showSurveillance ? 'Replier le bandeau' : 'Déplier le bandeau'">
+              <svg class="w-3 h-3 transition-transform" :class="showSurveillance ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wider text-slate-500 font-medium">À surveiller</p>
+              <h3 class="text-sm font-semibold text-slate-900 truncate">
+                Semaine S22 · <span x-text="surveillanceS22.weekLabel"></span>
+              </h3>
+            </div>
+          </div>
+          <div class="text-xs text-slate-500 text-right">
+            <template x-if="surveillanceS22.total === 0">
+              <span class="text-emerald-700 font-medium">✓ Aucun point d'attention</span>
+            </template>
+            <template x-if="surveillanceS22.total > 0">
+              <span>
+                <span class="text-slate-700 font-semibold" x-text="surveillanceS22.total"></span>
+                point<span x-show="surveillanceS22.total > 1">s</span> d'attention sur la semaine
+              </span>
+            </template>
+          </div>
+        </div>
+
+        <div x-show="showSurveillance" x-cloak class="surveillance-grid">
+
+          <!-- Card Collision -->
+          <div class="surv-card surv-collision"
+               :class="{ 'is-clickable': surveillanceS22.collisions.length > 0, 'is-zero': surveillanceS22.collisions.length === 0 }"
+               :tabindex="surveillanceS22.collisions.length > 0 ? '0' : '-1'"
+               :role="surveillanceS22.collisions.length > 0 ? 'button' : null"
+               :aria-label="surveillanceS22.collisions.length > 0 ? 'Voir la première collision S22' : null"
+               @click="surveillanceS22.collisions.length > 0 && openDrawerFromSurveillance('collisions')"
+               @keydown.enter="surveillanceS22.collisions.length > 0 && openDrawerFromSurveillance('collisions')"
+               @keydown.space.prevent="surveillanceS22.collisions.length > 0 && openDrawerFromSurveillance('collisions')">
+            <div class="surv-card-header">
+              <span class="surv-card-dot"></span>
+              <span class="surv-card-label">Collision</span>
+            </div>
+            <div class="surv-card-count" x-text="surveillanceS22.collisions.length"></div>
+            <div class="surv-card-hint">
+              <template x-if="surveillanceS22.collisions.length === 0">
+                <span>Aucune cette semaine</span>
+              </template>
+              <template x-if="surveillanceS22.collisions.length > 0">
+                <span x-text="surveillanceS22.collisionsLabel"></span>
+              </template>
+            </div>
+          </div>
+
+          <!-- Card Surcharge -->
+          <div class="surv-card surv-overload"
+               :class="{ 'is-clickable': surveillanceS22.overloads.length > 0, 'is-zero': surveillanceS22.overloads.length === 0 }"
+               :tabindex="surveillanceS22.overloads.length > 0 ? '0' : '-1'"
+               :role="surveillanceS22.overloads.length > 0 ? 'button' : null"
+               :aria-label="surveillanceS22.overloads.length > 0 ? 'Voir la première surcharge S22' : null"
+               @click="surveillanceS22.overloads.length > 0 && openDrawerFromSurveillance('overloads')"
+               @keydown.enter="surveillanceS22.overloads.length > 0 && openDrawerFromSurveillance('overloads')"
+               @keydown.space.prevent="surveillanceS22.overloads.length > 0 && openDrawerFromSurveillance('overloads')">
+            <div class="surv-card-header">
+              <span class="surv-card-dot"></span>
+              <span class="surv-card-label">Surcharge</span>
+            </div>
+            <div class="surv-card-count" x-text="surveillanceS22.overloads.length"></div>
+            <div class="surv-card-hint">
+              <template x-if="surveillanceS22.overloads.length === 0">
+                <span>Aucune cette semaine</span>
+              </template>
+              <template x-if="surveillanceS22.overloads.length > 0">
+                <span x-text="surveillanceS22.overloadsLabel"></span>
+              </template>
+            </div>
+          </div>
+
+          <!-- Card Absent non couvert -->
+          <div class="surv-card surv-uncovered"
+               :class="{ 'is-clickable': surveillanceS22.uncovered.length > 0, 'is-zero': surveillanceS22.uncovered.length === 0 }"
+               :tabindex="surveillanceS22.uncovered.length > 0 ? '0' : '-1'"
+               :role="surveillanceS22.uncovered.length > 0 ? 'button' : null"
+               :aria-label="surveillanceS22.uncovered.length > 0 ? 'Voir le premier absent non couvert S22' : null"
+               @click="surveillanceS22.uncovered.length > 0 && openDrawerFromSurveillance('uncovered')"
+               @keydown.enter="surveillanceS22.uncovered.length > 0 && openDrawerFromSurveillance('uncovered')"
+               @keydown.space.prevent="surveillanceS22.uncovered.length > 0 && openDrawerFromSurveillance('uncovered')">
+            <div class="surv-card-header">
+              <span class="surv-card-dot"></span>
+              <span class="surv-card-label">Absent non couvert</span>
+            </div>
+            <div class="surv-card-count" x-text="surveillanceS22.uncovered.length"></div>
+            <div class="surv-card-hint">
+              <template x-if="surveillanceS22.uncovered.length === 0">
+                <span>Tous couverts</span>
+              </template>
+              <template x-if="surveillanceS22.uncovered.length > 0">
+                <span x-text="surveillanceS22.uncoveredLabel"></span>
+              </template>
+            </div>
+          </div>
+
+          <!-- Card Absence sans machine -->
+          <div class="surv-card surv-orphan"
+               :class="{ 'is-clickable': surveillanceS22.orphans.length > 0, 'is-zero': surveillanceS22.orphans.length === 0 }"
+               :tabindex="surveillanceS22.orphans.length > 0 ? '0' : '-1'"
+               :role="surveillanceS22.orphans.length > 0 ? 'button' : null"
+               :aria-label="surveillanceS22.orphans.length > 0 ? 'Voir la première absence sans machine S22' : null"
+               @click="surveillanceS22.orphans.length > 0 && openDrawerFromSurveillance('orphans')"
+               @keydown.enter="surveillanceS22.orphans.length > 0 && openDrawerFromSurveillance('orphans')"
+               @keydown.space.prevent="surveillanceS22.orphans.length > 0 && openDrawerFromSurveillance('orphans')">
+            <div class="surv-card-header">
+              <span class="surv-card-dot"></span>
+              <span class="surv-card-label">Absence sans machine</span>
+            </div>
+            <div class="surv-card-count" x-text="surveillanceS22.orphans.length"></div>
+            <div class="surv-card-hint">
+              <template x-if="surveillanceS22.orphans.length === 0">
+                <span>RAS</span>
+              </template>
+              <template x-if="surveillanceS22.orphans.length > 0">
+                <span x-text="surveillanceS22.orphansLabel"></span>
+              </template>
+            </div>
+          </div>
+
+        </div>
+
+        <p x-show="showSurveillance" x-cloak class="text-[10px] text-slate-400 mt-2 text-right italic">
+          Clic carte → drawer ouvert sur le premier cas. Vue Étape 6, bandeau À surveiller S22.
+        </p>
       </div>
 
       <!-- HEADER FRISE MOBILE -->
@@ -787,7 +1062,7 @@
         </p>
 
         <p class="text-xs text-slate-400 mt-3">
-          Vue <span x-text="viewMode === 'agent' ? 'Par agent' : 'Par machine'"></span> · 8 semaines · sticky <span x-text="viewMode === 'agent' ? 'agent' : 'machine'"></span> gauche + header haut · S22 encadrée · Clic cellule = détail complet. Bandeau À surveiller en Étape 6.
+          Vue <span x-text="viewMode === 'agent' ? 'Par agent' : 'Par machine'"></span> · 8 semaines · sticky <span x-text="viewMode === 'agent' ? 'agent' : 'machine'"></span> gauche + header haut · S22 encadrée · Clic cellule = détail complet. Bandeau À surveiller intégré au-dessus.
         </p>
       </div>
 
@@ -1190,6 +1465,7 @@
         showRaw: false,
         showDiagnostic: false,
         showFrise: true,
+        showSurveillance: true,
         hideEmpty: true,
         filterEquipe: null,
         filterType: null,
@@ -1334,15 +1610,17 @@
           return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
         },
 
-        // === Étape 5.2 : analyse groupée des records (collision + surcharge) ===
-        // Groupe par (date + creneau). Pour chaque groupe de 2+ records :
-        // - Collision si statuts incluent Absent + autre chose
-        // - Surcharge si statuts compatibles (pas Absent) MAIS cibles différentes
-        //   (machine_rec_id en vue agent, agent_rec_id en vue machine)
-        get drawerGroupAnalysis() {
+        // ====================================================
+        // ÉTAPE 6 : analyzeWeekGroups réutilisable
+        // ====================================================
+        // Méthode pure : prend un paquet de records + entityType, groupe par
+        // (date + créneau), retourne :
+        //   - collisionRecIds : Set de rec_id où Absent + non-Absent coexistent
+        //   - overloadRecIds  : Set de rec_id où cibles distinctes ≥2 (sans Absent)
+        // Utilisée par le drawer (getter drawerGroupAnalysis) ET par surveillanceS22.
+        analyzeWeekGroups(records, entityType) {
           const result = { collisionRecIds: new Set(), overloadRecIds: new Set() };
-          const records = this.drawerContext.records || [];
-          if (records.length < 2) return result;
+          if (!records || records.length < 2) return result;
 
           const groups = {};
           records.forEach(r => {
@@ -1351,8 +1629,6 @@
             groups[k].push(r);
           });
 
-          const entityType = this.drawerContext.entityType;
-
           Object.values(groups).forEach(g => {
             if (g.length < 2) return;
             const statuts = g.map(r => r.statut);
@@ -1360,25 +1636,25 @@
             const hasNonAbsent = statuts.some(s => s !== 'Absent');
 
             if (hasAbsent && hasNonAbsent) {
-              // Collision : Absent + autre statut sur le même créneau/jour
               g.forEach(r => result.collisionRecIds.add(r.rec_id));
               return;
             }
 
-            // Pas de collision Absent. Check surcharge : cibles différentes ?
-            // Vue agent : cible = machine_rec_id. Surcharge si 2+ machines distinctes (toutes non null).
-            // Vue machine : cible = agent_rec_id. Surcharge si 2+ agents distincts (tous non null).
             const cibleField = entityType === 'agent' ? 'machine_rec_id' : 'agent_rec_id';
             const cibles = g.map(r => r[cibleField]).filter(c => c);
             const cibleSet = new Set(cibles);
 
-            // Si tous les records du groupe ont une cible et qu'il y en a au moins 2 distinctes → surcharge
             if (cibles.length === g.length && cibleSet.size >= 2) {
               g.forEach(r => result.overloadRecIds.add(r.rec_id));
             }
           });
 
           return result;
+        },
+
+        // Getter drawer : appelle analyzeWeekGroups avec le contexte courant.
+        get drawerGroupAnalysis() {
+          return this.analyzeWeekGroups(this.drawerContext.records || [], this.drawerContext.entityType);
         },
 
         get drawerHasCollision() {
@@ -1395,6 +1671,202 @@
 
         drawerIsOverloadRecord(rec) {
           return this.drawerGroupAnalysis.overloadRecIds.has(rec.rec_id);
+        },
+
+        // ====================================================
+        // ÉTAPE 6 : surveillanceS22 — agrégation friction S22
+        // ====================================================
+        // Scanne tous les agents (collisions + surcharges + absences sans machine
+        // + non couverts) puis toutes les machines (surcharges machine uniquement).
+        // Collision prime sur surcharge : un rec_id collision n'apparaît pas en surcharge.
+        // Chaque item porte { rec_id, ownerType, ownerRecId, ownerLabel, sortDate, sortCreneau }.
+        get surveillanceS22() {
+          const week = this.SEMAINE_COURANTE;
+          const collisionsMap = new Map();
+          const overloadsMap = new Map();
+          const uncoveredMap = new Map();
+          const orphansMap = new Map();
+
+          // --- Passe agent ---
+          this.agents.forEach(agent => {
+            const recs = (this.byAgentByWeek[agent.rec_id] && this.byAgentByWeek[agent.rec_id][week]) || [];
+            if (recs.length === 0) return;
+
+            const grp = this.analyzeWeekGroups(recs, 'agent');
+            recs.forEach(r => {
+              if (grp.collisionRecIds.has(r.rec_id)) {
+                if (!collisionsMap.has(r.rec_id)) {
+                  collisionsMap.set(r.rec_id, {
+                    rec_id: r.rec_id,
+                    ownerType: 'agent',
+                    ownerRecId: agent.rec_id,
+                    ownerLabel: this.entityDisplayName(agent, 'agent'),
+                    sortDate: r.date || '',
+                    sortCreneau: this.creneauOrder(r.creneau)
+                  });
+                }
+              } else if (grp.overloadRecIds.has(r.rec_id)) {
+                if (!overloadsMap.has(r.rec_id)) {
+                  overloadsMap.set(r.rec_id, {
+                    rec_id: r.rec_id,
+                    ownerType: 'agent',
+                    ownerRecId: agent.rec_id,
+                    ownerLabel: this.entityDisplayName(agent, 'agent'),
+                    sortDate: r.date || '',
+                    sortCreneau: this.creneauOrder(r.creneau)
+                  });
+                }
+              }
+            });
+
+            // Absences sans machine + Absences non couvertes (agents uniquement)
+            recs.forEach(r => {
+              if (r.statut !== 'Absent') return;
+
+              if (!r.machine_rec_id) {
+                if (!orphansMap.has(r.rec_id)) {
+                  orphansMap.set(r.rec_id, {
+                    rec_id: r.rec_id,
+                    ownerType: 'agent',
+                    ownerRecId: agent.rec_id,
+                    ownerLabel: this.entityDisplayName(agent, 'agent'),
+                    sortDate: r.date || '',
+                    sortCreneau: this.creneauOrder(r.creneau)
+                  });
+                }
+              }
+
+              // Couverture : un Modifié S22 doit exister sur même date + même créneau
+              // dont remplacement_rec_id pointe vers cet agent (ou remplacement_nom matche).
+              const isCovered = this.plannings.some(other => {
+                if (other.rec_id === r.rec_id) return false;
+                if (other.statut !== 'Modifié') return false;
+                if (other.date !== r.date) return false;
+                if (other.creneau !== r.creneau) return false;
+                if (other.remplacement_rec_id && other.remplacement_rec_id === agent.rec_id) return true;
+                if (other.remplacement_nom && r.agent_nom && other.remplacement_nom === r.agent_nom) return true;
+                return false;
+              });
+              if (!isCovered) {
+                if (!uncoveredMap.has(r.rec_id)) {
+                  uncoveredMap.set(r.rec_id, {
+                    rec_id: r.rec_id,
+                    ownerType: 'agent',
+                    ownerRecId: agent.rec_id,
+                    ownerLabel: this.entityDisplayName(agent, 'agent'),
+                    sortDate: r.date || '',
+                    sortCreneau: this.creneauOrder(r.creneau)
+                  });
+                }
+              }
+            });
+          });
+
+          // --- Passe machine ---
+          this.machines.forEach(machine => {
+            const recs = (this.byMachineByWeek[machine.rec_id] && this.byMachineByWeek[machine.rec_id][week]) || [];
+            if (recs.length === 0) return;
+
+            const grp = this.analyzeWeekGroups(recs, 'machine');
+            recs.forEach(r => {
+              // Collision déjà capté côté agent (impossibilité physique = porte agent)
+              // Surcharge machine = compteur dédié, n'écrase pas la passe agent
+              if (grp.overloadRecIds.has(r.rec_id) && !collisionsMap.has(r.rec_id)) {
+                const key = r.rec_id + '::machine::' + machine.rec_id;
+                if (!overloadsMap.has(key)) {
+                  overloadsMap.set(key, {
+                    rec_id: r.rec_id,
+                    ownerType: 'machine',
+                    ownerRecId: machine.rec_id,
+                    ownerLabel: this.entityDisplayName(machine, 'machine'),
+                    sortDate: r.date || '',
+                    sortCreneau: this.creneauOrder(r.creneau)
+                  });
+                }
+              }
+            });
+          });
+
+          // Tri par date ASC puis créneau (Matin < Aprem < sans)
+          const sortFn = (a, b) => {
+            const d = a.sortDate.localeCompare(b.sortDate);
+            if (d !== 0) return d;
+            return a.sortCreneau - b.sortCreneau;
+          };
+
+          const collisions = [...collisionsMap.values()].sort(sortFn);
+          const overloads = [...overloadsMap.values()].sort(sortFn);
+          const uncovered = [...uncoveredMap.values()].sort(sortFn);
+          const orphans = [...orphansMap.values()].sort(sortFn);
+
+          const labelize = (arr, max = 2) => {
+            if (arr.length === 0) return '';
+            const names = [...new Set(arr.map(x => x.ownerLabel))];
+            if (names.length <= max) return names.join(', ');
+            return names.slice(0, max).join(', ') + ' + ' + (names.length - max);
+          };
+
+          const labelizeDated = (arr) => {
+            if (arr.length === 0) return '';
+            const first = arr[0];
+            const dateShort = first.sortDate
+              ? new Date(first.sortDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+              : '';
+            if (arr.length === 1) return first.ownerLabel + (dateShort ? ' · ' + dateShort : '');
+            return first.ownerLabel + (dateShort ? ' · ' + dateShort : '') + ' + ' + (arr.length - 1);
+          };
+
+          return {
+            weekLabel: this.weekRangeLabel(week),
+            collisions,
+            overloads,
+            uncovered,
+            orphans,
+            total: collisions.length + overloads.length + uncovered.length + orphans.length,
+            collisionsLabel: labelize(collisions),
+            overloadsLabel: labelize(overloads),
+            uncoveredLabel: labelizeDated(uncovered),
+            orphansLabel: labelizeDated(orphans)
+          };
+        },
+
+        weekRangeLabel(weekNum) {
+          const jan4 = new Date(2026, 0, 4);
+          const jan4Day = jan4.getDay() || 7;
+          const week1Monday = new Date(jan4);
+          week1Monday.setDate(jan4.getDate() - jan4Day + 1);
+          const monday = new Date(week1Monday);
+          monday.setDate(week1Monday.getDate() + (weekNum - 1) * 7);
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          const mLabel = monday.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+          const sLabel = sunday.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+          return mLabel + ' → ' + sLabel;
+        },
+
+        // Ouvre le drawer sur le premier item d'une catégorie surveillance.
+        // Résout l'entité depuis agents/machines, construit un row factice
+        // (le drawer n'a besoin que de .entity), switch viewMode si nécessaire
+        // pour que la frise reste cohérente quand l'utilisateur referme.
+        openDrawerFromSurveillance(category) {
+          const cat = this.surveillanceS22[category];
+          if (!cat || cat.length === 0) return;
+          const first = cat[0];
+
+          let entity = null;
+          if (first.ownerType === 'agent') {
+            entity = this.agents.find(a => a.rec_id === first.ownerRecId);
+          } else {
+            entity = this.machines.find(m => m.rec_id === first.ownerRecId);
+          }
+          if (!entity) return;
+
+          if (first.ownerType !== this.viewMode) {
+            this.setViewMode(first.ownerType);
+          }
+
+          const row = { entity };
+          this.openDrawer(row, this.SEMAINE_COURANTE);
         },
 
         setViewMode(mode) {
